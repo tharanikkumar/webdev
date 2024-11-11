@@ -48,7 +48,79 @@ if (empty($data['action'])) {
 
 $action = sanitizeInput($data['action']);
 
-if ($action === 'approve') {
+if ($action === 'signup') {
+    // Signup action for admin
+    if (empty($data['name']) || empty($data['email']) || empty($data['password'])) {
+        die(json_encode(["error" => "Name, email, and password are required for signup."]));
+    }
+
+    $name = sanitizeInput($data['name']);
+    $email = sanitizeInput($data['email']);
+    $password = password_hash($data['password'], PASSWORD_BCRYPT);
+
+    // Check if email already exists in the admin table
+    $stmt = $conn->prepare("SELECT id FROM admin WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        die(json_encode(["error" => "Email is already registered."]));
+    }
+
+    // Insert new user into the admin table
+    $stmt = $conn->prepare("INSERT INTO admin (name, email, password, delete_status, created_at) VALUES (?, ?, ?, 0, NOW())");
+    $stmt->bind_param("sss", $name, $email, $password);
+
+    if ($stmt->execute()) {
+        echo json_encode(["message" => "User registered successfully in the admin table."]);
+    } else {
+        die(json_encode(["error" => "Database error: " . $stmt->error]));
+    }
+
+    $stmt->close();
+
+} elseif ($action === 'signin') {
+    // Signin action for admin
+    if (empty($data['email']) || empty($data['password'])) {
+        die(json_encode(["error" => "Email and password are required for signin."]));
+    }
+
+    $email = sanitizeInput($data['email']);
+    $password = $data['password'];
+
+    // Fetch user from the admin table
+    $stmt = $conn->prepare("SELECT id, password FROM admin WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows === 0) {
+        die(json_encode(["error" => "Invalid email or password."]));
+    }
+
+    $stmt->bind_result($id, $hashedPassword);
+    $stmt->fetch();
+
+    // Verify the password
+    if (password_verify($password, $hashedPassword)) {
+        // Generate a JWT token
+        $payload = [
+            "iss" => "your_issuer",
+            "aud" => "your_audience",
+            "iat" => time(),
+            "nbf" => time(),
+            "email" => $email
+        ];
+        $jwt = JWT::encode($payload, $secretKey, 'HS256');
+        echo json_encode(["message" => "Signin successful", "token" => $jwt]);
+    } else {
+        echo json_encode(["error" => "Invalid email or password."]);
+    }
+
+    $stmt->close();
+
+} elseif ($action === 'approve') {
     // Approval logic for admin
     if (empty($data['admin_token'])) {
         die(json_encode(["error" => "Admin token is required for approval."]));
