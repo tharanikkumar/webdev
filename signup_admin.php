@@ -20,6 +20,11 @@ if (empty($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
 
+// Check for the correct action
+if (empty($data['action']) || $data['action'] !== 'signup') {
+    die(json_encode(["error" => "Invalid action. Only 'signup' is allowed in this file."]));
+}
+
 // Ensure name, email, and password are provided for signup
 if (empty($data['name']) || empty($data['email']) || empty($data['password'])) {
     die(json_encode(["error" => "Name, email, and password are required for signup."]));
