@@ -1,4 +1,15 @@
 <?php
+header("Access-Control-Allow-Origin: http://localhost:5173");  // Allow your frontend origin
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");  // Allow specific methods
+header("Access-Control-Allow-Headers: Content-Type, Authorization");  // Allow headers (like Content-Type and Authorization)
+header("Access-Control-Allow-Credentials: true");  // Allow cookies and credentials
+
+// If it's a preflight OPTIONS request, return 200 OK without further processing
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 require 'vendor/autoload.php';
 require 'db.php'; // Include your database connection file
 
@@ -8,8 +19,10 @@ error_reporting(E_ALL);
 
 // Function to sanitize input data
 function sanitizeInput($data) {
-    return htmlspecialchars(stripslashes(trim($data)));
+    // Convert null to an empty string before trimming
+    return htmlspecialchars(stripslashes(trim($data ?? '')));
 }
+
 
 // Check if the request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

@@ -1,10 +1,34 @@
 <?php
 require 'vendor/autoload.php';
 require 'db.php';
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
+$secretKey = "sic"; 
 
 function sanitizeInput($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
+
+// Middleware for JWT token verification
+function verifyJWTToken($secretKey) {
+    if (isset($_COOKIE['auth_token'])) {
+        try {
+            $jwt = $_COOKIE['evaluator_token'];
+            $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
+            return $decoded;
+        } catch (Exception $e) {
+            echo json_encode(["error" => "Invalid or expired token"]);
+            exit;
+        }
+    } else {
+        echo json_encode(["error" => "Authorization token is required"]);
+        exit;
+    }
+}
+
+// Verify token before processing the request
+$decodedToken = verifyJWTToken($secretKey);
 
 // Ensure the request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -21,9 +45,7 @@ $json = file_get_contents('php://input');
 $data = json_decode($json, true);
 
 // Check for the correct action
-if (empty($data['action']) || $data['action'] !== 'edit') {
-    die(json_encode(["error" => "Invalid action. Only 'edit' is allowed in this file."]));
-}
+
 
 // Check if evaluator_id is provided for editing
 if (empty($data['evaluator_id'])) {
@@ -40,7 +62,7 @@ $fields = [
     "theme_preference_3", "expertise_in_startup_value_chain", "role_interested"
 ];
 
-// Prepare the SQL update query dynamically based on the provided fields
+
 $updateFields = [];
 $updateValues = [];
 foreach ($fields as $field) {
