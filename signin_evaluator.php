@@ -17,10 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Read and decode the JSON payload
 $data = json_decode(file_get_contents('php://input'), true);
 
-// Ensure 'action' is set to 'signin'
-if (empty($data['action']) || $data['action'] !== 'signin') {
-    die(json_encode(["error" => "Invalid action. Use 'signin' action only."]));
-}
+
 
 // Validate input fields for signin
 if (empty($data['email']) || empty($data['password'])) {

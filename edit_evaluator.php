@@ -4,31 +4,22 @@ require 'db.php';
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-$secretKey = "sic"; 
+$secretKey = "your_secret_key"; // Define your secret key for JWT
 
 function sanitizeInput($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
-// Middleware for JWT token verification
-function verifyJWTToken($secretKey) {
-    if (isset($_COOKIE['auth_token'])) {
-        try {
-            $jwt = $_COOKIE['evaluator_token'];
-            $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
-            return $decoded;
-        } catch (Exception $e) {
-            echo json_encode(["error" => "Invalid or expired token"]);
-            exit;
-        }
-    } else {
-        echo json_encode(["error" => "Authorization token is required"]);
+// Middleware function to validate the admin token
+function validateAdminToken($token, $secretKey) {
+    try {
+        $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
+        return $decoded->email; // Return the email if token is valid
+    } catch (Exception $e) {
+        echo json_encode(["error" => "Invalid or expired admin token."]);
         exit;
     }
 }
-
-// Verify token before processing the request
-$decodedToken = verifyJWTToken($secretKey);
 
 // Ensure the request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -44,15 +35,23 @@ if (empty($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
 
-// Check for the correct action
-
-
-// Check if evaluator_id is provided for editing
-if (empty($data['evaluator_id'])) {
-    die(json_encode(["error" => "Evaluator ID is required for editing."]));
+// Check if admin token and evaluator_id are provided for editing
+if (empty($data['admin_token']) || empty($data['evaluator_id'])) {
+    die(json_encode(["error" => "Admin token and evaluator ID are required for editing."]));
 }
 
+$adminEmail = validateAdminToken($data['admin_token'], $secretKey); // Validate the admin token
 $evaluator_id = intval($data['evaluator_id']);
+
+// Check if evaluator exists with the given ID and is associated with this admin token
+$stmt = $conn->prepare("SELECT id FROM evaluator WHERE id = ? AND evaluator_status = 1");
+$stmt->bind_param("i", $evaluator_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 0) {
+    die(json_encode(["error" => "Evaluator ID not found or you do not have permission to edit this evaluator."]));
+}
 
 // Fields that can be updated
 $fields = [
@@ -62,7 +61,7 @@ $fields = [
     "theme_preference_3", "expertise_in_startup_value_chain", "role_interested"
 ];
 
-
+// Prepare the SQL update query dynamically based on the provided fields
 $updateFields = [];
 $updateValues = [];
 foreach ($fields as $field) {

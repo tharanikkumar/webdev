@@ -21,29 +21,23 @@ function validateAdminToken($token, $secretKey) {
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
 
-// Ensure the action is 'approve'
-if (empty($data['action']) || $data['action'] !== 'approve') {
-    die(json_encode(["error" => "Invalid action. Only 'approve' is allowed."]));
-}
-
-// Ensure the admin token is provided
-if (empty($data['admin_token'])) {
-    die(json_encode(["error" => "Admin token is required for approval."]));
+// Ensure the admin token and evaluator ID are provided
+if (empty($data['admin_token']) || empty($data['evaluator_id'])) {
+    die(json_encode(["error" => "Admin token and evaluator ID are required for approval."]));
 }
 
 $adminEmail = validateAdminToken($data['admin_token'], $secretKey); // Validate the admin token
+$evaluator_id = $data['evaluator_id'];
 
-// Retrieve the first evaluator pending approval
-$stmt = $conn->prepare("SELECT id FROM evaluator WHERE evaluator_status = 0 LIMIT 1");
+// Check if the evaluator exists and is pending approval
+$stmt = $conn->prepare("SELECT id FROM evaluator WHERE id = ? AND evaluator_status = 0");
+$stmt->bind_param("i", $evaluator_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    echo json_encode(["error" => "No pending evaluators for approval."]);
+    echo json_encode(["error" => "Evaluator ID not found or already approved."]);
 } else {
-    $evaluator = $result->fetch_assoc();
-    $evaluator_id = $evaluator['id'];
-
     // Approve the evaluator
     $stmt = $conn->prepare("UPDATE evaluator SET evaluator_status = 1 WHERE id = ?");
     $stmt->bind_param("i", $evaluator_id);
