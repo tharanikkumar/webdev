@@ -1,4 +1,6 @@
 <?php
+
+
 header("Access-Control-Allow-Origin: http://localhost:5173");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -9,8 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+include ('db.php');
 require 'vendor/autoload.php';
-require 'db.php';
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
@@ -28,20 +30,34 @@ function checkJwtCookie() {
 
         try {
             $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
+            if (!isset($decoded->role) || $decoded->role !== 'admin') {
+        
+                header("HTTP/1.1 403 Forbidden");
+                echo json_encode(["error" => "You are not an admin."]);
+                exit();
+            }
+
             return $decoded;
         } catch (Exception $e) {
-            die(json_encode(["error" => "Unauthorized - " . $e->getMessage()]));
+            header("HTTP/1.1 401 Unauthorized");
+            echo json_encode(["error" => "Unauthorized - " . $e->getMessage()]);
+            exit();
         }
     } else {
-        die(json_encode(["error" => "Unauthorized - No token provided."]));
+        header("HTTP/1.1 401 Unauthorized");
+        echo json_encode(["error" => "Unauthorized - No token provided."]);
+        exit();
     }
 }
 
 function getAllEvaluators() {
-    global $db;
+
+    global $conn; // Make sure you're referring to the global $db object
+
+  
 
     $query = "SELECT * FROM evaluator";
-    $stmt = $db->prepare($query);
+    $stmt = $conn->prepare($query);
 
     if ($stmt === false) {
         die(json_encode(["error" => "Failed to prepare SQL query."]));
@@ -68,6 +84,8 @@ $evaluators = getAllEvaluators();
 echo json_encode([
     "status" => "success",
     "evaluators" => $evaluators,
-    "user" => $decodedUser
+
 ]);
 ?>
+
+

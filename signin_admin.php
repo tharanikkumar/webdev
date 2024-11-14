@@ -50,13 +50,10 @@ if (password_verify($password, $hashedPassword)) {
         "aud" => "your_audience",
         "iat" => time(),
         "nbf" => time(),
-        "email" => $email
+        "email" => $email,
+        "role"=>"admin"
     ];
     $jwt = JWT::encode($payload, $secretKey, 'HS256');
-
-    
-  
-   
     setcookie("auth_token", $jwt, [
         'expires' => time() + (86400 * 7),
         'path' => '/',
@@ -64,7 +61,7 @@ if (password_verify($password, $hashedPassword)) {
         'secure' => isset($_SERVER['HTTPS']),
         'samesite' => 'Strict'
     ]);
-    echo json_encode(["message" => "Signin successful","role"=>"admin", ]);
+    echo json_encode(["message" => "success","role"=>"admin", ]);
 } else {
     echo json_encode(["error" => "Invalid email or password."]);
 }

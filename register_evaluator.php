@@ -8,7 +8,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Secret key for JWT signing (should match across your application)
+
 $secretKey = "your_secret_key";
 
 // Middleware to check if the request content type is JSON
@@ -46,17 +46,17 @@ function checkRequiredFields($data, $fields) {
     }
 }
 
-// Function to sanitize input data
+
 function sanitizeInput($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
-// Function to get theme names based on IDs
+
 function getThemeNamesByIds($theme_ids) {
     global $conn;
     $theme_names = [];
     foreach ($theme_ids as $theme_id) {
-        // Query to get the theme name for each ID
+ 
         $query = "SELECT theme_name FROM theme WHERE id = ?";
         $stmt = $conn->prepare($query);
         $stmt->bind_param("i", $theme_id);
@@ -68,7 +68,7 @@ function getThemeNamesByIds($theme_ids) {
             $stmt->fetch();
             $theme_names[] = $theme_name;
         } else {
-            $theme_names[] = null; // Invalid ID, no theme found
+            $theme_names[] = null; 
         }
         $stmt->close();
     }
@@ -76,11 +76,11 @@ function getThemeNamesByIds($theme_ids) {
     return $theme_names;
 }
 
-// Signup logic for evaluator registration
+
 function handleSignup($data) {
     global $conn;
 
-    // Define all fields as required for registration
+  
     $requiredFields = [
         "first_name", "last_name", "gender", "email", "phone_number", 
         "alternate_email", "alternate_phone_number", "college_name", "designation", 
@@ -105,14 +105,14 @@ function handleSignup($data) {
     $city = sanitizeInput($data['city']);
     $state = sanitizeInput($data['state']);
     $knowledge_domain = sanitizeInput($data['knowledge_domain']);
-    // Retrieve and sanitize input data
+   
 $theme_preference_1 = isset($data['theme_preference_1']) ? (int)$data['theme_preference_1'] : 0;
 $theme_preference_2 = isset($data['theme_preference_2']) ? (int)$data['theme_preference_2'] : 0;
 $theme_preference_3 = isset($data['theme_preference_3']) ? (int)$data['theme_preference_3'] : 0;
 
     $expertise_in_startup_value_chain = sanitizeInput($data['expertise_in_startup_value_chain']);
     $role_interested = sanitizeInput($data['role_interested']);
-    $evaluator_status = 0;  // Default to inactive
+    $evaluator_status = 0; 
 
     // Get the theme names based on the IDs
     $theme_names = getThemeNamesByIds([$theme_preference_1, $theme_preference_2, $theme_preference_3]);
