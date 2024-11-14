@@ -51,36 +51,49 @@ function sanitizeInput($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
-// Function to get theme names based on IDs
-function getThemeNamesByIds($theme_ids) {
+// Function to check if an email is already registered
+function isEmailRegistered($email) {
     global $conn;
-    $theme_names = [];
+    $query = "SELECT id FROM evaluator WHERE email = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $stmt->store_result();
+    $isRegistered = $stmt->num_rows > 0;
+    $stmt->close();
+
+    return $isRegistered;
+}
+
+// Function to validate if theme IDs exist in the theme table
+function validateThemeIds($theme_ids) {
+    global $conn;
+    $validThemeIds = [];
+
     foreach ($theme_ids as $theme_id) {
-        // Query to get the theme name for each ID
-        $query = "SELECT theme_name FROM theme WHERE id = ?";
+        $query = "SELECT id FROM theme WHERE id = ?";
         $stmt = $conn->prepare($query);
         $stmt->bind_param("i", $theme_id);
         $stmt->execute();
         $stmt->store_result();
-        
+
         if ($stmt->num_rows > 0) {
-            $stmt->bind_result($theme_name);
-            $stmt->fetch();
-            $theme_names[] = $theme_name;
+            $validThemeIds[] = $theme_id; // valid theme ID
         } else {
-            $theme_names[] = null; // Invalid ID, no theme found
+            $validThemeIds[] = null; // invalid theme ID
         }
+
         $stmt->close();
     }
 
-    return $theme_names;
+    // Return false if any theme ID is invalid
+    return !in_array(null, $validThemeIds);
 }
 
 // Signup logic for evaluator registration
 function handleSignup($data) {
     global $conn;
 
-    // Define all fields as required for registration
     $requiredFields = [
         "first_name", "last_name", "gender", "email", "phone_number", 
         "alternate_email", "alternate_phone_number", "college_name", "designation", 
@@ -90,11 +103,17 @@ function handleSignup($data) {
     ];
     checkRequiredFields($data, $requiredFields);
 
-    // Retrieve and sanitize input data
     $first_name = sanitizeInput($data['first_name']);
     $last_name = sanitizeInput($data['last_name']);
     $gender = sanitizeInput($data['gender']);
     $email = sanitizeInput($data['email']);
+
+    // Check if email is already registered
+    if (isEmailRegistered($email)) {
+        echo json_encode(["error" => "Email is already registered."]);
+        exit;
+    }
+
     $phone_number = sanitizeInput($data['phone_number']);
     $password = password_hash(sanitizeInput($data['password']), PASSWORD_DEFAULT);
     $alternate_email = sanitizeInput($data['alternate_email']);
@@ -105,25 +124,20 @@ function handleSignup($data) {
     $city = sanitizeInput($data['city']);
     $state = sanitizeInput($data['state']);
     $knowledge_domain = sanitizeInput($data['knowledge_domain']);
-    // Retrieve and sanitize input data
-$theme_preference_1 = isset($data['theme_preference_1']) ? (int)$data['theme_preference_1'] : 0;
-$theme_preference_2 = isset($data['theme_preference_2']) ? (int)$data['theme_preference_2'] : 0;
-$theme_preference_3 = isset($data['theme_preference_3']) ? (int)$data['theme_preference_3'] : 0;
-
+    $theme_preference_1 = isset($data['theme_preference_1']) ? (int)$data['theme_preference_1'] : 0;
+    $theme_preference_2 = isset($data['theme_preference_2']) ? (int)$data['theme_preference_2'] : 0;
+    $theme_preference_3 = isset($data['theme_preference_3']) ? (int)$data['theme_preference_3'] : 0;
     $expertise_in_startup_value_chain = sanitizeInput($data['expertise_in_startup_value_chain']);
     $role_interested = sanitizeInput($data['role_interested']);
     $evaluator_status = 0;  // Default to inactive
 
-    // Get the theme names based on the IDs
-    $theme_names = getThemeNamesByIds([$theme_preference_1, $theme_preference_2, $theme_preference_3]);
-
-    // Check if any of the themes is invalid (null value)
-    if (in_array(null, $theme_names)) {
+    // Validate the theme IDs
+    $theme_ids = [$theme_preference_1, $theme_preference_2, $theme_preference_3];
+    if (!validateThemeIds($theme_ids)) {
         echo json_encode(["error" => "One or more theme IDs are invalid."]);
         exit;
     }
 
-    // Prepare SQL statement to insert data into the evaluator table
     $stmt = $conn->prepare("INSERT INTO evaluator (
         first_name, last_name, gender, email, alternate_email, phone_number, 
         alternate_phone_number, college_name, designation, total_experience, 
@@ -136,17 +150,15 @@ $theme_preference_3 = isset($data['theme_preference_3']) ? (int)$data['theme_pre
         exit;
     }
 
-    // Bind parameters for the SQL query
     $stmt->bind_param(
         "ssssssssissssssssssi",
         $first_name, $last_name, $gender, $email, $alternate_email, $phone_number,
         $alternate_phone_number, $college_name, $designation, $total_experience,
-        $city, $state, $knowledge_domain, $theme_names[0], $theme_names[1],
-        $theme_names[2], $expertise_in_startup_value_chain, $role_interested,
+        $city, $state, $knowledge_domain, $theme_preference_1, $theme_preference_2,
+        $theme_preference_3, $expertise_in_startup_value_chain, $role_interested,
         $password, $evaluator_status
     );
 
-    // Execute the statement
     if ($stmt->execute()) {
         echo json_encode(["message" => "Evaluator registered successfully!"]);
     } else {
@@ -156,11 +168,9 @@ $theme_preference_3 = isset($data['theme_preference_3']) ? (int)$data['theme_pre
     $stmt->close();
 }
 
-// Main script logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ensureJsonContentType();
     $data = getJsonInput();
-
     handleSignup($data);
 } else {
     echo json_encode(["error" => "Invalid request method. Only POST is allowed."]);

@@ -17,8 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Read and decode the JSON payload
 $data = json_decode(file_get_contents('php://input'), true);
 
-
-
 // Validate input fields for signin
 if (empty($data['email']) || empty($data['password'])) {
     die(json_encode(["error" => "Email and password are required for signin."]));
@@ -53,8 +51,12 @@ if (password_verify($password, $hashedPassword)) {
     ];
 
     // Generate JWT token
-    $jwt = JWT::encode($payload, 'your_secret_key', 'HS256');
+    $jwt = JWT::encode($payload, 'sic', 'HS256');
 
+    // Set the JWT token as a cookie with an expiration time (e.g., 1 hour)
+    setcookie('auth_token1', $jwt, time() + (60 * 60), '/', 'localhost', true, true); // Secure cookie flag, HTTPOnly
+
+    // Send the token in the response as well, in case the client wants to handle it
     echo json_encode(["message" => "Signin successful!", "token" => $jwt]);
 } else {
     echo json_encode(["error" => "Invalid password."]);

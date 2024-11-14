@@ -64,7 +64,6 @@ function checkJwtCookie() {
     }
 }
 
-
 // Function to fetch common statistics
 function getCommonStatistics() {
     global $conn; // Ensure you're referring to the global $conn object
@@ -98,12 +97,24 @@ function getCommonStatistics() {
     }
 }
 
-// Function to fetch evaluators
-function getEvaluators() {
+// Function to fetch evaluators based on IDs or all evaluators
+function getEvaluators($ids = null) {
     global $conn;
 
-    $query = "SELECT id, first_name, last_name, email, phone_number, city, state FROM evaluator WHERE delete_status = 0";
-    $stmt = $conn->prepare($query);
+    // Prepare SQL query
+    if ($ids) {
+        // If IDs are provided, fetch evaluators by IDs
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $query = "SELECT id, first_name, last_name, email, phone_number, city, state FROM evaluator WHERE id IN ($placeholders) AND delete_status = 0";
+        $stmt = $conn->prepare($query);
+
+        // Bind the IDs as parameters
+        $stmt->bind_param(str_repeat('i', count($ids)), ...$ids);
+    } else {
+        // Fetch all evaluators if no IDs are provided
+        $query = "SELECT id, first_name, last_name, email, phone_number, city, state FROM evaluator WHERE delete_status = 0";
+        $stmt = $conn->prepare($query);
+    }
 
     if ($stmt === false) {
         // Log and display detailed error information
@@ -133,8 +144,12 @@ $decodedUser = checkJwtCookie();
 // Fetch common statistics (Total ideas, evaluators, pending verifications)
 $commonStatistics = getCommonStatistics();
 
-// Fetch all evaluators
-$evaluators = getEvaluators();
+// Get evaluator IDs from request (if any)
+$input = json_decode(file_get_contents("php://input"), true);
+$evaluatorIds = isset($input['evaluator_ids']) ? $input['evaluator_ids'] : null;
+
+// Fetch evaluators based on provided IDs (or all evaluators if no IDs)
+$evaluators = getEvaluators($evaluatorIds);
 
 // Return common statistics and evaluators as JSON response
 echo json_encode([
