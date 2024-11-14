@@ -4,29 +4,35 @@ require 'db.php';
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-$secretKey = "your_secret_key"; // Define your secret key for JWT
+$secretKey = "sic"; // Define your secret key for JWT
 
 function sanitizeInput($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
-// Middleware function to validate the admin token
+
 function validateAdminToken($token, $secretKey) {
     try {
         $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
-        return $decoded->email; // Return the email if token is valid
+        if (!isset($decoded->role) || $decoded->role !== 'admin') {
+        
+            header("HTTP/1.1 403 Forbidden");
+            echo json_encode(["error" => "You are not an admin."]);
+            exit();
+        }
+        return $decoded->email;
     } catch (Exception $e) {
         echo json_encode(["error" => "Invalid or expired admin token."]);
         exit;
     }
 }
 
-// Ensure the request method is POST
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die(json_encode(["error" => "Invalid request method. Only POST is allowed."]));
 }
 
-// Ensure content type is JSON
+
 if (empty($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application/json') {
     die(json_encode(["error" => "Content-Type must be application/json"]));
 }
@@ -79,7 +85,7 @@ if (empty($updateFields)) {
 // Add evaluator_id to the values array
 $updateValues[] = $evaluator_id;
 
-// Prepare and execute the update statement
+
 $stmt = $conn->prepare("UPDATE evaluator SET " . implode(", ", $updateFields) . " WHERE id = ?");
 $stmt->bind_param(str_repeat("s", count($updateValues) - 1) . "i", ...$updateValues);
 
