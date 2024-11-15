@@ -14,10 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 include ('db.php');
 require 'vendor/autoload.php';
-<<<<<<< HEAD
 require 'db.php';  // Include your database connection file
-=======
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
@@ -44,47 +41,32 @@ function checkJwtCookie() {
         try {
             // Decode the JWT token to verify and check the role
             $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
-<<<<<<< HEAD
 
             // Check if the role is 'admin'
             if (!isset($decoded->role) || $decoded->role !== 'admin') {
                 // Return a 403 Forbidden status and a custom message
-=======
-            if (!isset($decoded->role) || $decoded->role !== 'admin') {
-        
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
                 header("HTTP/1.1 403 Forbidden");
                 echo json_encode(["error" => "You are not an admin."]);
                 exit();
             }
 
-<<<<<<< HEAD
             // Return the decoded JWT data if role is 'admin'
-=======
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
             return $decoded;
 
         } catch (Exception $e) {
-<<<<<<< HEAD
             // If the JWT verification fails, return a 401 Unauthorized status with the error message
-=======
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
             header("HTTP/1.1 401 Unauthorized");
             echo json_encode(["error" => "Unauthorized - " . $e->getMessage()]);
             exit();
         }
     } else {
-<<<<<<< HEAD
         // If the auth token is missing, return a 401 Unauthorized status with a message
-=======
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
         header("HTTP/1.1 401 Unauthorized");
         echo json_encode(["error" => "Unauthorized - No token provided."]);
         exit();
     }
 }
 
-<<<<<<< HEAD
 
 // Function to fetch common statistics
 function getCommonStatistics() {
@@ -99,15 +81,6 @@ function getCommonStatistics() {
             (SELECT COUNT(*) FROM evaluator WHERE evaluator_status = 0) AS pending_evaluators  -- Evaluators with status 0 (pending)
     ";
 
-=======
-function getAllEvaluators() {
-
-    global $conn; // Make sure you're referring to the global $db object
-
-  
-
-    $query = "SELECT * FROM evaluator";
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
     $stmt = $conn->prepare($query);
 
     if ($stmt === false) {
@@ -171,10 +144,6 @@ echo json_encode([
     "status" => "success",
     "common_statistics" => $commonStatistics,
     "evaluators" => $evaluators,
-<<<<<<< HEAD
-=======
-
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
 ]);
 ?>
 

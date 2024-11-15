@@ -51,13 +51,8 @@ function sanitizeInput($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
-<<<<<<< HEAD
 // Function to check if an email is already registered
 function isEmailRegistered($email) {
-=======
-
-function getThemeNamesByIds($theme_ids) {
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
     global $conn;
     $query = "SELECT id FROM evaluator WHERE email = ?";
     $stmt = $conn->prepare($query);
@@ -76,12 +71,7 @@ function validateThemeIds($theme_ids) {
     $validThemeIds = [];
 
     foreach ($theme_ids as $theme_id) {
-<<<<<<< HEAD
         $query = "SELECT id FROM theme WHERE id = ?";
-=======
- 
-        $query = "SELECT theme_name FROM theme WHERE id = ?";
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
         $stmt = $conn->prepare($query);
         $stmt->bind_param("i", $theme_id);
         $stmt->execute();
@@ -90,11 +80,7 @@ function validateThemeIds($theme_ids) {
         if ($stmt->num_rows > 0) {
             $validThemeIds[] = $theme_id; // valid theme ID
         } else {
-<<<<<<< HEAD
             $validThemeIds[] = null; // invalid theme ID
-=======
-            $theme_names[] = null; 
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
         }
 
         $stmt->close();
@@ -108,10 +94,6 @@ function validateThemeIds($theme_ids) {
 function handleSignup($data) {
     global $conn;
 
-<<<<<<< HEAD
-=======
-  
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
     $requiredFields = [
         "first_name", "last_name", "gender", "email", "phone_number", 
         "alternate_email", "alternate_phone_number", "college_name", "designation", 
@@ -142,20 +124,12 @@ function handleSignup($data) {
     $city = sanitizeInput($data['city']);
     $state = sanitizeInput($data['state']);
     $knowledge_domain = sanitizeInput($data['knowledge_domain']);
-<<<<<<< HEAD
     $theme_preference_1 = isset($data['theme_preference_1']) ? (int)$data['theme_preference_1'] : 0;
     $theme_preference_2 = isset($data['theme_preference_2']) ? (int)$data['theme_preference_2'] : 0;
     $theme_preference_3 = isset($data['theme_preference_3']) ? (int)$data['theme_preference_3'] : 0;
-=======
-   
-$theme_preference_1 = isset($data['theme_preference_1']) ? (int)$data['theme_preference_1'] : 0;
-$theme_preference_2 = isset($data['theme_preference_2']) ? (int)$data['theme_preference_2'] : 0;
-$theme_preference_3 = isset($data['theme_preference_3']) ? (int)$data['theme_preference_3'] : 0;
-
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
     $expertise_in_startup_value_chain = sanitizeInput($data['expertise_in_startup_value_chain']);
     $role_interested = sanitizeInput($data['role_interested']);
-    $evaluator_status = 0; 
+    $evaluator_status = 3; 
 
     // Validate the theme IDs
     $theme_ids = [$theme_preference_1, $theme_preference_2, $theme_preference_3];

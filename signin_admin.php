@@ -51,18 +51,12 @@ if (password_verify($password, $hashedPassword)) {
         "iat" => time(),
         "nbf" => time(),
         "email" => $email,
-<<<<<<< HEAD
         "role" => "admin"  // Add role claim to the token
     ];
     
     $jwt = JWT::encode($payload, $secretKey, 'HS256');
     
     // Set the token as a secure, HttpOnly cookie
-=======
-        "role"=>"admin"
-    ];
-    $jwt = JWT::encode($payload, $secretKey, 'HS256');
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
     setcookie("auth_token", $jwt, [
         'expires' => time() + (86400 * 7),  // 7 days expiration
         'path' => '/',
@@ -70,12 +64,8 @@ if (password_verify($password, $hashedPassword)) {
         'secure' => isset($_SERVER['HTTPS']),  // Ensure HTTPS for secure cookie
         'samesite' => 'Strict'  // Ensure the cookie is sent only to same-site requests
     ]);
-<<<<<<< HEAD
 
     echo json_encode(["message" => "Signin successful", "role" => "admin"]);
-=======
-    echo json_encode(["message" => "success","role"=>"admin", ]);
->>>>>>> 6e08db44f77ba81f6043a81bc246e4471dd335e7
 } else {
     echo json_encode(["error" => "Invalid email or password."]);
 }
