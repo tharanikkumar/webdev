@@ -26,8 +26,8 @@ if (empty($data['email']) || empty($data['password'])) {
 $email = sanitizeInput($data['email']);
 $password = sanitizeInput($data['password']);
 
-// Fetch evaluator from the database
-$stmt = $conn->prepare("SELECT id, password FROM evaluator WHERE email = ?");
+// Fetch evaluator from the database, including evaluator_status
+$stmt = $conn->prepare("SELECT id, password, evaluator_status FROM evaluator WHERE email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $stmt->store_result();
@@ -36,10 +36,15 @@ if ($stmt->num_rows === 0) {
     die(json_encode(["error" => "No user found with this email."]));
 }
 
-$stmt->bind_result($id, $hashedPassword);
+$stmt->bind_result($id, $hashedPassword, $evaluatorStatus);
 $stmt->fetch();
 
-// Verify the password
+// Check if the evaluator is approved
+if ($evaluatorStatus == 3) {
+    die(json_encode(["error" => "You are not approved yet. Please wait for verification."]));
+}
+
+// Verify the password if evaluator is approved (status 1)
 if (password_verify($password, $hashedPassword)) {
     // JWT payload with standard claims
     $payload = [
