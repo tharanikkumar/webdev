@@ -4,14 +4,14 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require 'db.php';
-require 'vendor/autoload.php'; // Include JWT library
+require 'vendor/autoload.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-$secretKey = 'sic'; // Replace with your secret key
+$secretKey = 'sic';
 
-// Middleware function to validate the admin session using cookies
+
 function checkJwtCookie() {
     global $secretKey;
 

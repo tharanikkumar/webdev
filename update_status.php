@@ -1,6 +1,7 @@
 <?php
 require 'vendor/autoload.php';
-require 'db.php';  // Include your database connection file
+require 'db.php';
+  // Include your database connection file
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
