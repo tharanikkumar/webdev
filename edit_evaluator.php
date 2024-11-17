@@ -110,10 +110,10 @@ if (empty($updateFields)) {
     die(json_encode(["error" => "No fields provided to update."]));
 }
 
-// Add evaluator_id to the values array to ensure we only update the evaluator's idea
+
 $updateValues[] = $evaluator_id;
 
-// Prepare the SQL statement to update the idea
+
 $stmt = $conn->prepare("UPDATE ideas SET " . implode(", ", $updateFields) . " WHERE evaluator_id = ? AND idea_id = ?");
 $stmt->bind_param(str_repeat("s", count($updateValues) - 1) . "ii", ...$updateValues);
 

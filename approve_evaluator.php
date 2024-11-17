@@ -45,7 +45,6 @@ function checkJwtCookie() {
             exit();
         }
     } else {
-        // If the auth token is missing, return a 401 Unauthorized status with a message
         header("HTTP/1.1 401 Unauthorized");
         echo json_encode(["error" => "Unauthorized - No token provided."]);
         exit();
