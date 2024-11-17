@@ -20,11 +20,11 @@ use PHPMailer\PHPMailer\Exception;
 
 $secretKey = "sic";
 
-// Function to validate JWT and check admin role
+
 function checkJwtCookie() {
     global $secretKey;
 
-    // Check if the auth token is stored in the cookie
+
     if (isset($_COOKIE['auth_token'])) {
         $jwt = $_COOKIE['auth_token'];
         error_log("JWT Token: " . $_COOKIE['auth_token']);
@@ -75,7 +75,7 @@ $result = $stmt->get_result();
 if ($result->num_rows === 0) {
     echo json_encode(["error" => "Evaluator ID not found or already approved."]);
 } else {
-    // Approve the evaluator (set status to 1)
+    
     $stmt = $conn->prepare("UPDATE evaluator SET evaluator_status = 1 WHERE id = ?");
     $stmt->bind_param("i", $evaluator_id);
 
@@ -92,7 +92,7 @@ if ($result->num_rows === 0) {
 
         echo json_encode(["message" => "Evaluator approved successfully! An email has been sent to the evaluator.", "evaluator_id" => $evaluator_id]);
     } else {
-        // Handle errors (e.g., if something went wrong during update)
+      
         echo json_encode(["error" => "Failed to approve evaluator. " . $stmt->error]);
     }
 }
