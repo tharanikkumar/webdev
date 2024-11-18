@@ -3,8 +3,49 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+require 'vendor/autoload.php'; // Include JWT library (e.g., Firebase JWT)
+
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
+// Define your secret key for JWT
+$secretKey = "sic";
+
+// Middleware function to validate the admin session using cookies
+function checkJwtCookie() {
+    global $secretKey;
+
+    if (isset($_COOKIE['auth_token'])) {
+        $jwt = $_COOKIE['auth_token'];
+
+        try {
+            $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
+
+            // Check if the user role is admin
+            if (!isset($decoded->role) || $decoded->role !== 'admin') {
+                header("HTTP/1.1 403 Forbidden");
+                echo json_encode(["error" => "You are not authorized to perform this action."]);
+                exit();
+            }
+
+            return $decoded;
+        } catch (Exception $e) {
+            header("HTTP/1.1 401 Unauthorized");
+            echo json_encode(["error" => "Unauthorized - " . $e->getMessage()]);
+            exit();
+        }
+    } else {
+        header("HTTP/1.1 401 Unauthorized");
+        echo json_encode(["error" => "Unauthorized - No token provided."]);
+        exit();
+    }
+}
+
 // Include database connection
 include 'db.php';
+
+// Check if the JWT cookie is valid
+$user = checkJwtCookie();
 
 // Get JSON input and decode it
 $input = json_decode(file_get_contents("php://input"), true);
@@ -16,7 +57,7 @@ $score = $input['score'] ?? null;
 $evaluator_comments = $input['evaluator_comments'] ?? null;
 
 // Check if required fields are present
-if (empty($idea_id) || empty($evaluator_ids)) {
+if (empty($idea_id) || empty($evaluator_ids) ) {
     echo json_encode(["error" => "Idea ID, Evaluator IDs, and score are required."]);
     exit;
 }
