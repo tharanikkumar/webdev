@@ -1,55 +1,86 @@
 <?php
+header("Access-Control-Allow-Origin: http://localhost:5173");
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
 require 'vendor/autoload.php';
-require 'db.php';
+require 'db.php';  // Include your database connection file
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
 $secretKey = "sic"; // Define your secret key for JWT
 
+// Sanitize input function to prevent XSS and SQL injection
 function sanitizeInput($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
+// Function to validate the admin token
+function checkJwtCookie() {
+    global $secretKey;
 
-function validateAdminToken($token, $secretKey) {
-    try {
-        $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
-        if (!isset($decoded->role) || $decoded->role !== 'admin') {
-        
-            header("HTTP/1.1 403 Forbidden");
-            echo json_encode(["error" => "You are not an admin."]);
+    // Check if the auth token is stored in the cookie
+    if (isset($_COOKIE['auth_token'])) {
+        $jwt = $_COOKIE['auth_token'];
+
+        try {
+            // Decode the JWT token to verify and check the role
+            $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
+
+            // Check if the role is 'admin'
+            if (!isset($decoded->role) || $decoded->role !== 'admin') {
+                // Return a 403 Forbidden status and a custom message
+                header("HTTP/1.1 403 Forbidden");
+                echo json_encode(["error" => "You are not an admin."]);
+                exit();
+            }
+
+            // Return the decoded JWT data if role is 'admin'
+            return $decoded;
+
+        } catch (Exception $e) {
+            // If the JWT verification fails, return a 401 Unauthorized status with the error message
+            header("HTTP/1.1 401 Unauthorized");
+            echo json_encode(["error" => "Unauthorized - " . $e->getMessage()]);
             exit();
         }
-        return $decoded->email;
-    } catch (Exception $e) {
-        echo json_encode(["error" => "Invalid or expired admin token."]);
-        exit;
+    } else {
+        // If the auth token is missing, return a 401 Unauthorized status with a message
+        header("HTTP/1.1 401 Unauthorized");
+        echo json_encode(["error" => "Unauthorized - No token provided."]);
+        exit();
     }
 }
 
-
+// Ensure request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die(json_encode(["error" => "Invalid request method. Only POST is allowed."]));
 }
 
-
+// Ensure the content type is JSON
 if (empty($_SERVER['CONTENT_TYPE']) || $_SERVER['CONTENT_TYPE'] !== 'application/json') {
     die(json_encode(["error" => "Content-Type must be application/json"]));
 }
 
-// Read and decode the JSON payload
+// Read and decode the JSON payload from the body
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
 
-// Check if admin token and evaluator_id are provided for editing
-if (empty($data['admin_token']) || empty($data['evaluator_id'])) {
-    die(json_encode(["error" => "Admin token and evaluator ID are required for editing."]));
+// Check if admin token is provided
+if (empty($data['auth_token'])) {
+    die(json_encode(["error" => "Admin token is required for editing."]));
 }
 
-$adminEmail = validateAdminToken($data['admin_token'], $secretKey); // Validate the admin token
-$evaluator_id = intval($data['evaluator_id']);
+$adminEmail = validateAdminToken($data['auth_token'], $secretKey); 
 
-// Check if evaluator exists with the given ID and is associated with this admin token
+// Get evaluator_id from query parameters
+$evaluator_id = isset($_GET['evaluator_id']) ? intval($_GET['evaluator_id']) : null;
+if ($evaluator_id === null) {
+    die(json_encode(["error" => "Evaluator ID is required."]));
+}
+
+// Ensure the evaluator exists and is active
 $stmt = $conn->prepare("SELECT id FROM evaluator WHERE id = ? AND evaluator_status = 1");
 $stmt->bind_param("i", $evaluator_id);
 $stmt->execute();
@@ -59,12 +90,9 @@ if ($result->num_rows === 0) {
     die(json_encode(["error" => "Evaluator ID not found or you do not have permission to edit this evaluator."]));
 }
 
-// Fields that can be updated
+// Fields that can be updated for the idea
 $fields = [
-    "first_name", "last_name", "gender", "email", "phone_number", "college_name", 
-    "alternate_email", "alternate_phone_number", "designation", "total_experience", 
-    "city", "state", "knowledge_domain", "theme_preference_1", "theme_preference_2", 
-    "theme_preference_3", "expertise_in_startup_value_chain", "role_interested"
+    "idea_name", "idea_description", "category", "tags", "status", "created_at", "updated_at"
 ];
 
 // Prepare the SQL update query dynamically based on the provided fields
@@ -82,15 +110,15 @@ if (empty($updateFields)) {
     die(json_encode(["error" => "No fields provided to update."]));
 }
 
-// Add evaluator_id to the values array
+
 $updateValues[] = $evaluator_id;
 
 
-$stmt = $conn->prepare("UPDATE evaluator SET " . implode(", ", $updateFields) . " WHERE id = ?");
-$stmt->bind_param(str_repeat("s", count($updateValues) - 1) . "i", ...$updateValues);
+$stmt = $conn->prepare("UPDATE ideas SET " . implode(", ", $updateFields) . " WHERE evaluator_id = ? AND idea_id = ?");
+$stmt->bind_param(str_repeat("s", count($updateValues) - 1) . "ii", ...$updateValues);
 
 if ($stmt->execute()) {
-    echo json_encode(["message" => "Evaluator details updated successfully!"]);
+    echo json_encode(["message" => "Idea details updated successfully!"]);
 } else {
     echo json_encode(["error" => "Database error: " . $stmt->error]);
 }

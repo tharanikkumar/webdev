@@ -11,13 +11,19 @@ $input = json_decode(file_get_contents("php://input"), true);
 
 // Extract data from the request
 $idea_id = $input['idea_id'] ?? null;
-$evaluator_id = $input['evaluator_id'] ?? null;
+$evaluator_ids = $input['evaluator_id'] ?? [];
 $score = $input['score'] ?? null;
 $evaluator_comments = $input['evaluator_comments'] ?? null;
 
 // Check if required fields are present
-if (empty($idea_id) || empty($evaluator_id) || empty($score)) {
-    echo json_encode(["error" => "Idea ID, Evaluator ID, and score are required."]);
+if (empty($idea_id) || empty($evaluator_ids)) {
+    echo json_encode(["error" => "Idea ID, Evaluator IDs, and score are required."]);
+    exit;
+}
+
+// Ensure evaluator_ids is an array
+if (!is_array($evaluator_ids)) {
+    echo json_encode(["error" => "Evaluator IDs must be provided as an array."]);
     exit;
 }
 
@@ -34,31 +40,32 @@ if ($idea_count == 0) {
     exit;
 }
 
-// Check if the evaluator_id exists in the evaluator table
-$stmt_check_evaluator = $conn->prepare("SELECT COUNT(*) FROM evaluator WHERE id = ?");
-$stmt_check_evaluator->bind_param("i", $evaluator_id);
-$stmt_check_evaluator->execute();
-$stmt_check_evaluator->bind_result($evaluator_count);
-$stmt_check_evaluator->fetch();
-$stmt_check_evaluator->free_result();
-
-if ($evaluator_count == 0) {
-    echo json_encode(["error" => "Invalid evaluator_id: $evaluator_id. The evaluator does not exist."]);
-    exit;
-}
-
 // Start transaction
 $conn->autocommit(false);
 
 try {
-    // Insert data into idea_evaluators table
-    $stmt = $conn->prepare("INSERT INTO idea_evaluators (idea_id, evaluator_id, score, evaluator_comments) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("iiis", $idea_id, $evaluator_id, $score, $evaluator_comments);
-    $stmt->execute();
-    
+    foreach ($evaluator_ids as $evaluator_id) {
+        // Check if the evaluator_id exists in the evaluator table
+        $stmt_check_evaluator = $conn->prepare("SELECT COUNT(*) FROM evaluator WHERE id = ?");
+        $stmt_check_evaluator->bind_param("i", $evaluator_id);
+        $stmt_check_evaluator->execute();
+        $stmt_check_evaluator->bind_result($evaluator_count);
+        $stmt_check_evaluator->fetch();
+        $stmt_check_evaluator->free_result();
+
+        if ($evaluator_count == 0) {
+            throw new Exception("Invalid evaluator_id: $evaluator_id. The evaluator does not exist.");
+        }
+
+        // Insert data into idea_evaluators table
+        $stmt = $conn->prepare("INSERT INTO idea_evaluators (idea_id, evaluator_id, score, evaluator_comments) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("iiis", $idea_id, $evaluator_id, $score, $evaluator_comments);
+        $stmt->execute();
+    }
+
     // Commit transaction
     $conn->commit();
-    echo json_encode(["success" => "Evaluator successfully mapped to the idea."]);
+    echo json_encode(["success" => "Evaluators successfully mapped to the idea."]);
 
 } catch (Exception $e) {
     // Rollback if something goes wrong

@@ -73,8 +73,7 @@ function getCommonStatistics() {
         SELECT 
             (SELECT COUNT(*) FROM ideas) AS ideas_registered,  -- Total ideas across all evaluators
             (SELECT COUNT(*) FROM evaluator WHERE delete_status = 0) AS total_evaluators,  -- Total evaluators where delete_status is 0 (active)
-            (SELECT COUNT(*) FROM ideas WHERE status_id = 3) AS pending_ideas,  -- Ideas with pending verification
-            (SELECT COUNT(*) FROM evaluator WHERE evaluator_status = 0) AS pending_evaluators  -- Evaluators with status 0 (pending)
+            (SELECT COUNT(*) FROM evaluator WHERE evaluator_status = 3) AS pending_evaluators  -- Evaluators with status 0 (pending)
     ";
 
     $stmt = $conn->prepare($query);

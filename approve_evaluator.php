@@ -1,4 +1,13 @@
 <?php
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+header("Access-Control-Allow-Origin: http://localhost:5173");
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
 require 'vendor/autoload.php';
 require 'db.php';
 use Firebase\JWT\JWT;
@@ -6,7 +15,7 @@ use Firebase\JWT\Key;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-$secretKey = "sic";
+$secretKey = "sic"; // Define your secret key for JWT
 
 // Middleware function to validate the admin session using cookies
 function checkJwtCookie() {
@@ -37,18 +46,15 @@ function checkJwtCookie() {
     }
 }
 
-// Read and decode the JSON payload (only the evaluator ID)
-$json = file_get_contents('php://input');
-$data = json_decode($json, true);
-
-// Ensure the evaluator ID is provided in the request
-if (empty($data['evaluator_id'])) {
+// Retrieve the evaluator_id from URL parameters (GET)
+if (isset($_GET['evaluator_id'])) {
+    $evaluator_id = $_GET['evaluator_id'];
+} else {
     die(json_encode(["error" => "Evaluator ID is required for approval."]));
 }
 
 // Get the admin's email from the session (cookie)
 $adminEmail = checkJwtCookie(); // Validate the admin session using cookies
-$evaluator_id = $data['evaluator_id'];
 
 // Check if the evaluator exists and is pending approval
 $stmt = $conn->prepare("SELECT id FROM evaluator WHERE id = ? AND evaluator_status = 3"); // 3 means pending
@@ -72,11 +78,16 @@ if ($result->num_rows === 0) {
         $stmt->fetch();
 
         // Send email with sign-in link
-        sendEmail($evaluatorEmail);
-
-        echo json_encode(["message" => "Evaluator approved successfully! An email has been sent to the evaluator.", "evaluator_id" => $evaluator_id]);
+        $emailResult = sendEmail($evaluatorEmail);
+        if ($emailResult !== true) {
+            echo json_encode(["error" => "Email could not be sent."]);
+        } else {
+            echo json_encode(["message" => "Evaluator approved successfully! An email has been sent to the evaluator.", "evaluator_id" => $evaluator_id]);
+        }
     } else {
-        die(json_encode(["error" => "Database error: " . $stmt->error]));
+        // Log the database error
+        error_log("Error executing SQL for approving evaluator: " . $stmt->error);
+        echo json_encode(["error" => "Error approving evaluator. Please try again later."]);
     }
 }
 
@@ -97,9 +108,6 @@ function sendEmail($evaluatorEmail) {
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Enable TLS encryption
         $mail->Port       = 587; // Port for TLS
 
-        // Debugging output (Enable to view SMTP conversation)
-        $mail->SMTPDebug = 0; // 0 = off, 1 = client messages, 2 = client and server messages
-
         // Recipients
         $mail->setFrom('tharanikkumar6@gmail.com', 'Admin'); // Sender's email and name
         $mail->addAddress($evaluatorEmail); // Recipient's email
@@ -111,14 +119,17 @@ function sendEmail($evaluatorEmail) {
 
         // Send email
         if ($mail->send()) {
-            echo "Email sent successfully!";
+            return true;
         } else {
-            echo "Email could not be sent.";
+            // Log email sending error
+            error_log("Mailer Error: " . $mail->ErrorInfo);
+            return false;
         }
 
     } catch (Exception $e) {
-        // Output the error
-        echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+        // Log the exception message
+        error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
+        return false;
     }
 }
 ?>
