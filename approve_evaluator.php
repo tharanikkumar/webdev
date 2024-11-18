@@ -1,33 +1,29 @@
 <?php
-// Handle preflight OPTIONS request for CORS
-// Handle preflight OPTIONS request for CORS
+// Enable error reporting for debugging
+header("Access-Control-Allow-Origin: http://localhost:5173");
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 
-// Handle the actual request after OPTIONS is complete
-header("Access-Control-Allow-Origin: http://localhost:5173");  // Allow specific origin
-header("Access-Control-Allow-Credentials: true");  // Allow credentials (cookies)
-header("Access-Control-Allow-Methods: PUT, POST, OPTIONS");  // Allowed methods
-header("Access-Control-Allow-Headers: Content-Type, Authorization");  // Allowed headers
-
-// Include dependencies
 require 'vendor/autoload.php';
 require 'db.php';
-
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-$secretKey = "sic";
+$secretKey = "sic"; // Define your secret key for JWT
 
-
+// Middleware function to validate the admin session using cookies
 function checkJwtCookie() {
     global $secretKey;
 
-
     if (isset($_COOKIE['auth_token'])) {
         $jwt = $_COOKIE['auth_token'];
-        error_log("JWT Token: " . $_COOKIE['auth_token']);
 
         try {
             $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
@@ -51,30 +47,26 @@ function checkJwtCookie() {
     }
 }
 
-// Read and decode the JSON payload (only the evaluator ID)
-$json = file_get_contents('php://input');
-$data = json_decode($json, true);
-
-// Ensure the evaluator ID is provided in the request
-if (empty($data['evaluator_id'])) {
+// Retrieve the evaluator_id from URL parameters (GET)
+if (isset($_GET['evaluator_id'])) {
+    $evaluator_id = $_GET['evaluator_id'];
+} else {
     die(json_encode(["error" => "Evaluator ID is required for approval."]));
 }
 
 // Get the admin's email from the session (cookie)
 $adminEmail = checkJwtCookie(); // Validate the admin session using cookies
-$evaluator_id = $data['evaluator_id'];
 
 // Check if the evaluator exists and is pending approval
-$stmt = $conn->prepare("SELECT id FROM evaluator WHERE id = ? AND evaluator_status = 0");
+$stmt = $conn->prepare("SELECT id FROM evaluator WHERE id = ? AND evaluator_status = 3"); // 3 means pending
 $stmt->bind_param("i", $evaluator_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// If evaluator not found or already approved
 if ($result->num_rows === 0) {
     echo json_encode(["error" => "Evaluator ID not found or already approved."]);
 } else {
-    
+    // Approve the evaluator
     $stmt = $conn->prepare("UPDATE evaluator SET evaluator_status = 1 WHERE id = ?");
     $stmt->bind_param("i", $evaluator_id);
 
@@ -87,12 +79,16 @@ if ($result->num_rows === 0) {
         $stmt->fetch();
 
         // Send email with sign-in link
-        sendEmail($evaluatorEmail);
-
-        echo json_encode(["message" => "Evaluator approved successfully! An email has been sent to the evaluator.", "evaluator_id" => $evaluator_id]);
+        $emailResult = sendEmail($evaluatorEmail);
+        if ($emailResult !== true) {
+            echo json_encode(["error" => "Email could not be sent."]);
+        } else {
+            echo json_encode(["message" => "Evaluator approved successfully! An email has been sent to the evaluator.", "evaluator_id" => $evaluator_id]);
+        }
     } else {
-      
-        echo json_encode(["error" => "Failed to approve evaluator. " . $stmt->error]);
+        // Log the database error
+        error_log("Error executing SQL for approving evaluator: " . $stmt->error);
+        echo json_encode(["error" => "Error approving evaluator. Please try again later."]);
     }
 }
 
@@ -113,9 +109,6 @@ function sendEmail($evaluatorEmail) {
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Enable TLS encryption
         $mail->Port       = 587; // Port for TLS
 
-        // Debugging output (Enable to view SMTP conversation)
-        $mail->SMTPDebug = 0; // 0 = off, 1 = client messages, 2 = client and server messages
-
         // Recipients
         $mail->setFrom('tharanikkumar6@gmail.com', 'Admin'); // Sender's email and name
         $mail->addAddress($evaluatorEmail); // Recipient's email
@@ -127,14 +120,17 @@ function sendEmail($evaluatorEmail) {
 
         // Send email
         if ($mail->send()) {
-            echo "Email sent successfully!";
+            return true;
         } else {
-            echo "Email could not be sent.";
+            // Log email sending error
+            error_log("Mailer Error: " . $mail->ErrorInfo);
+            return false;
         }
 
     } catch (Exception $e) {
-        // Output the error
-        echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+        // Log the exception message
+        error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
+        return false;
     }
 }
 ?>

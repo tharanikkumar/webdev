@@ -9,6 +9,18 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Add CORS headers to allow requests from your frontend (adjust origin if needed)
+header("Access-Control-Allow-Origin: http://localhost:5173");  // Your frontend URL
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Credentials: true"); // If you need cookies with the requests
+header("Content-Type: application/json");
+
+// Handle preflight (OPTIONS) request
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    exit(0);  // No further processing for preflight request
+}
+
 // Ensure the request method is POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die(json_encode(["error" => "Invalid request method. Only POST is allowed."]));
@@ -26,8 +38,8 @@ if (empty($data['email']) || empty($data['password'])) {
 $email = sanitizeInput($data['email']);
 $password = sanitizeInput($data['password']);
 
-// Fetch evaluator from the database, including evaluator_status
-$stmt = $conn->prepare("SELECT id, password, evaluator_status FROM evaluator WHERE email = ?");
+// Fetch evaluator from the database, including evaluator_status and name
+$stmt = $conn->prepare("SELECT id, first_name, last_name, password, evaluator_status FROM evaluator WHERE email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $stmt->store_result();
@@ -36,7 +48,7 @@ if ($stmt->num_rows === 0) {
     die(json_encode(["error" => "No user found with this email."]));
 }
 
-$stmt->bind_result($id, $hashedPassword, $evaluatorStatus);
+$stmt->bind_result($id, $firstName, $lastName, $hashedPassword, $evaluatorStatus);
 $stmt->fetch();
 
 // Check if the evaluator is approved
@@ -51,7 +63,7 @@ if (password_verify($password, $hashedPassword)) {
         'iss' => 'your_website.com',
         'aud' => 'your_website.com',
         'iat' => time(),
-        'exp' => time() + (60 * 60),  // Token valid for 1 hour
+        'exp' => time() + (60 * 60),  
         'email' => $email
     ];
 
@@ -59,10 +71,15 @@ if (password_verify($password, $hashedPassword)) {
     $jwt = JWT::encode($payload, 'sic', 'HS256');
 
     // Set the JWT token as a cookie with an expiration time (e.g., 1 hour)
-    setcookie('auth_token1', $jwt, time() + (60 * 60), '/', 'localhost', true, true); // Secure cookie flag, HTTPOnly
+    setcookie('auth_token', $jwt, time() + (60 * 60), '/', 'localhost', true, true); // Secure cookie flag, HTTPOnly
 
-    // Send the token in the response as well, in case the client wants to handle it
-    echo json_encode(["message" => "Signin successful!", "token" => $jwt]);
+    // Return a success message with the evaluator's details and the token
+    echo json_encode([
+        "message" => "Signin successful!",
+        "evaluator_id" => $id,
+        "evaluator_name" => $firstName . ' ' . $lastName,
+        "role"=>"evaluator" // Send the token in the response as well
+    ]);
 } else {
     echo json_encode(["error" => "Invalid password."]);
 }
