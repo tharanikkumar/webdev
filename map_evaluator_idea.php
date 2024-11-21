@@ -15,8 +15,49 @@ header("Access-Control-Allow-Credentials: true");              // Allow credenti
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");    // Allowed methods
 header("Access-Control-Allow-Headers: Content-Type, Authorization");  // Allowed headers
 
+require 'vendor/autoload.php'; // Include JWT library (e.g., Firebase JWT)
+
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+
+// Define your secret key for JWT
+$secretKey = "sic";
+
+// Middleware function to validate the admin session using cookies
+function checkJwtCookie() {
+    global $secretKey;
+
+    if (isset($_COOKIE['auth_token'])) {
+        $jwt = $_COOKIE['auth_token'];
+
+        try {
+            $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
+
+            // Check if the user role is admin
+            if (!isset($decoded->role) || $decoded->role !== 'admin') {
+                header("HTTP/1.1 403 Forbidden");
+                echo json_encode(["error" => "You are not authorized to perform this action."]);
+                exit();
+            }
+
+            return $decoded;
+        } catch (Exception $e) {
+            header("HTTP/1.1 401 Unauthorized");
+            echo json_encode(["error" => "Unauthorized - " . $e->getMessage()]);
+            exit();
+        }
+    } else {
+        header("HTTP/1.1 401 Unauthorized");
+        echo json_encode(["error" => "Unauthorized - No token provided."]);
+        exit();
+    }
+}
+
 // Include database connection
 include 'db.php';
+
+// Check if the JWT cookie is valid
+$user = checkJwtCookie();
 
 // Get JSON input and decode it
 $input = json_decode(file_get_contents("php://input"), true);
@@ -50,7 +91,10 @@ if ($idea_count == 0) {
 $conn->autocommit(false);
 
 try {
+<<<<<<< HEAD
     // Loop through the evaluator IDs and insert each one
+=======
+>>>>>>> ad9dcde5de2dba79753565dcd5eec92bdacb123b
     foreach ($evaluator_ids as $evaluator_id) {
         // Check if the evaluator_id exists in the evaluator table
         $stmt_check_evaluator = $conn->prepare("SELECT COUNT(*) FROM evaluator WHERE id = ?");
@@ -61,6 +105,7 @@ try {
         $stmt_check_evaluator->free_result();
 
         if ($evaluator_count == 0) {
+<<<<<<< HEAD
             echo json_encode(["error" => "Invalid evaluator_id: $evaluator_id. The evaluator does not exist."]);
             exit;
         }
@@ -80,6 +125,20 @@ try {
     // Commit transaction
     $conn->commit();
     echo json_encode(["success" => "Evaluators successfully mapped to the idea and idea status updated."]);
+=======
+            throw new Exception("Invalid evaluator_id: $evaluator_id. The evaluator does not exist.");
+        }
+
+        // Insert data into idea_evaluators table
+        $stmt = $conn->prepare("INSERT INTO idea_evaluators (idea_id, evaluator_id, score, evaluator_comments) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("iiis", $idea_id, $evaluator_id, $score, $evaluator_comments);
+        $stmt->execute();
+    }
+
+    // Commit transaction
+    $conn->commit();
+    echo json_encode(["success" => "Evaluators successfully mapped to the idea."]);
+>>>>>>> ad9dcde5de2dba79753565dcd5eec92bdacb123b
 
 } catch (Exception $e) {
     // Rollback if something goes wrong

@@ -17,6 +17,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 $secretKey = "sic"; // Define your secret key for JWT
+$secretKey = "sic"; // Define your secret key for JWT
 
 // Middleware function to validate the admin session using cookies
 function checkJwtCookie() {
@@ -47,6 +48,10 @@ function checkJwtCookie() {
     }
 }
 
+// Retrieve the evaluator_id from URL parameters (GET)
+if (isset($_GET['evaluator_id'])) {
+    $evaluator_id = $_GET['evaluator_id'];
+} else {
 // Retrieve the evaluator_id from URL parameters (GET)
 if (isset($_GET['evaluator_id'])) {
     $evaluator_id = $_GET['evaluator_id'];
@@ -85,7 +90,16 @@ if ($result->num_rows === 0) {
         } else {
             echo json_encode(["message" => "Evaluator approved successfully! An email has been sent to the evaluator.", "evaluator_id" => $evaluator_id]);
         }
+        $emailResult = sendEmail($evaluatorEmail);
+        if ($emailResult !== true) {
+            echo json_encode(["error" => "Email could not be sent."]);
+        } else {
+            echo json_encode(["message" => "Evaluator approved successfully! An email has been sent to the evaluator.", "evaluator_id" => $evaluator_id]);
+        }
     } else {
+        // Log the database error
+        error_log("Error executing SQL for approving evaluator: " . $stmt->error);
+        echo json_encode(["error" => "Error approving evaluator. Please try again later."]);
         // Log the database error
         error_log("Error executing SQL for approving evaluator: " . $stmt->error);
         echo json_encode(["error" => "Error approving evaluator. Please try again later."]);
@@ -121,13 +135,20 @@ function sendEmail($evaluatorEmail) {
         // Send email
         if ($mail->send()) {
             return true;
+            return true;
         } else {
+            // Log email sending error
+            error_log("Mailer Error: " . $mail->ErrorInfo);
+            return false;
             // Log email sending error
             error_log("Mailer Error: " . $mail->ErrorInfo);
             return false;
         }
 
     } catch (Exception $e) {
+        // Log the exception message
+        error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
+        return false;
         // Log the exception message
         error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
         return false;

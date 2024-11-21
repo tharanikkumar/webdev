@@ -64,8 +64,45 @@ function checkJwtCookie() {
     }
 }
 
+<<<<<<< HEAD
 // Function to fetch a single evaluator by ID
 function getEvaluatorById($id) {
+=======
+// Function to fetch common statistics
+function getCommonStatistics() {
+    global $conn; // Ensure you're referring to the global $conn object
+
+    // Query to get the common statistics with accurate counts for ideas, evaluators, and pending verifications
+    $query = "
+        SELECT 
+            (SELECT COUNT(*) FROM ideas) AS ideas_registered,  -- Total ideas across all evaluators
+            (SELECT COUNT(*) FROM evaluator WHERE delete_status = 0) AS total_evaluators,  -- Total evaluators where delete_status is 0 (active)
+            (SELECT COUNT(*) FROM evaluator WHERE evaluator_status = 3) AS pending_evaluators  -- Evaluators with status 0 (pending)
+    ";
+
+    $stmt = $conn->prepare($query);
+
+    if ($stmt === false) {
+        // Log and display detailed error information
+        die(json_encode([
+            "error" => "Failed to prepare SQL query.",
+            "sql_error" => $conn->error
+        ]));
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        return $result->fetch_assoc();
+    } else {
+        return null;
+    }
+}
+
+// Function to fetch evaluators based on IDs or all evaluators
+function getEvaluators($ids = null) {
+>>>>>>> ad9dcde5de2dba79753565dcd5eec92bdacb123b
     global $conn;
 
     // Prepare SQL query to fetch evaluator by ID

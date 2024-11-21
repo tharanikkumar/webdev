@@ -72,7 +72,7 @@ function checkJwtCookie() {
 function getCommonStatistics() {
     global $conn; // Ensure you're referring to the global $conn object
 
-    // Query to get the common statistics with accurate counts for ideas, evaluators, and pending verifications
+    // Query to get the common statistics with accurate counts for ideas and evaluators
     $query = "
         SELECT 
             (SELECT COUNT(*) FROM ideas) AS ideas_registered,  -- Total ideas across all evaluators
@@ -99,6 +99,7 @@ function getCommonStatistics() {
         return null;
     }
 }
+
 
 // Function to fetch evaluators
 function getEvaluators() {
