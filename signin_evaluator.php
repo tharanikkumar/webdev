@@ -1,7 +1,18 @@
 <?php
+header("Access-Control-Allow-Origin: http://localhost:5173");
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+
+// Handle preflight requests (OPTIONS method)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
 // Include necessary files and setup
 require 'vendor/autoload.php';
-require 'db.php';  // Include your database connection file
+require 'db.php'; // Include your database connection file
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
@@ -51,34 +62,54 @@ if ($stmt->num_rows === 0) {
 $stmt->bind_result($id, $firstName, $lastName, $hashedPassword, $evaluatorStatus);
 $stmt->fetch();
 
-// Check if the evaluator is approved
+// Check if the evaluator is approved (status 1)
 if ($evaluatorStatus == 3) {
     die(json_encode(["error" => "You are not approved yet. Please wait for verification."]));
 }
 
 // Verify the password if evaluator is approved (status 1)
 if (password_verify($password, $hashedPassword)) {
-    // JWT payload with standard claims
+    // JWT payload with evaluator role and claims
     $payload = [
         'iss' => 'your_website.com',
         'aud' => 'your_website.com',
         'iat' => time(),
-        'exp' => time() + (60 * 60),  
-        'email' => $email
+        'exp' => time() + (60 * 60), // Token valid for 1 hour
+        'email' => $email,
+
     ];
 
     // Generate JWT token
     $jwt = JWT::encode($payload, 'sic', 'HS256');
 
     // Set the JWT token as a cookie with an expiration time (e.g., 1 hour)
-    setcookie('auth_token', $jwt, time() + (60 * 60), '/', 'localhost', true, true); // Secure cookie flag, HTTPOnly
 
-    // Return a success message with the evaluator's details and the token
+    setcookie("auth_token1", $jwt, [
+        "expires" => time() + 3600, // 1 hour
+        "path" => "/",
+        "domain" => "localhost",
+        "secure" => false, // Set true only for HTTPS
+        "httponly" => false, // Set true if cookies are not accessed via JS
+        "samesite" => "Lax" // Use "None" for cross-site requests if needed
+    ]);
+
+    // Set the role as a cookie
+    setcookie("role", "evaluator", [
+        "expires" => time() + 3600, // 1 hour
+        "path" => "/",
+        "domain" => "localhost",
+        "secure" => false, // Set true only for HTTPS
+        "httponly" => false, // Allow JS to access the role if needed
+        "samesite" => "Lax" // Use "None" for cross-site requests if needed
+    ]);
+
+    // Send the token, role, and evaluator ID in the response
     echo json_encode([
         "message" => "Signin successful!",
-        "evaluator_id" => $id,
-        "evaluator_name" => $firstName . ' ' . $lastName,
-        "role"=>"evaluator" // Send the token in the response as well
+        "role" => "evaluator",
+        "id" => $id, // Include evaluator ID
+        "token" => $jwt
+
     ]);
 } else {
     echo json_encode(["error" => "Invalid password."]);

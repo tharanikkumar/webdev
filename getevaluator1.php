@@ -64,10 +64,10 @@ function checkJwtCookie() {
     }
 }
 
-<<<<<<< HEAD
+
 // Function to fetch a single evaluator by ID
 function getEvaluatorById($id) {
-=======
+
 // Function to fetch common statistics
 function getCommonStatistics() {
     global $conn; // Ensure you're referring to the global $conn object
@@ -102,7 +102,7 @@ function getCommonStatistics() {
 
 // Function to fetch evaluators based on IDs or all evaluators
 function getEvaluators($ids = null) {
->>>>>>> ad9dcde5de2dba79753565dcd5eec92bdacb123b
+
     global $conn;
 
     // Prepare SQL query to fetch evaluator by ID
@@ -119,6 +119,14 @@ function getEvaluators($ids = null) {
 
     $stmt->execute();
     $result = $stmt->get_result();
+
+    if ($result === false) {
+        // Log any errors related to query execution
+        die(json_encode([
+            "error" => "Failed to execute SQL query.",
+            "sql_error" => $conn->error
+        ]));
+    }
 
     if ($result->num_rows > 0) {
         return $result->fetch_assoc();  // Return a single evaluator
@@ -144,6 +152,7 @@ if ($evaluatorId) {
     // Debugging step: log the evaluator data
     error_log("Fetched evaluator: " . json_encode($evaluator));
 
+
     if ($evaluator) {
         // Return evaluator details as JSON response
         echo json_encode([
@@ -164,5 +173,15 @@ if ($evaluatorId) {
         "message" => "No evaluator ID provided."
     ]);
 }
+
+if ($evaluatorIds === null || !is_array($evaluatorIds)) {
+    // Return an error if evaluator_ids is not provided or is not an array
+    echo json_encode(["error" => "Invalid evaluator_ids format."]);
+    exit();
+}
+
+// Fetch evaluators based on provided IDs (or all evaluators if no IDs)
+$evaluators = getEvaluators($evaluatorIds);
+
 
 ?>
