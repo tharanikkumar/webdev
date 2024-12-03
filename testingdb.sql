@@ -79,11 +79,7 @@ CREATE TABLE `evaluator` (
 -- Dumping data for table `evaluator`
 --
 
-INSERT INTO `evaluator` (`id`, `first_name`, `last_name`, `gender`, `email`, `alternate_email`, `phone_number`, `alternate_phone_number`, `college_name`, `designation`, `total_experience`, `city`, `state`, `knowledge_domain`, `theme_preference_1`, `theme_preference_2`, `theme_preference_3`, `expertise_in_startup_value_chain`, `role_interested`, `evaluator_status`, `delete_status`, `created_at`, `password`) VALUES
-(11, 'John', 'Doe', 'Male', 'tharanikkumar6@gmail.com', 'doe1@example.com', '1234567890', '0987654321', 'Example College', '0', 5, 'CityName', 'StateName', 'Software Development', '1', '2', '3', 'Fundraising', 'Mentor', '3', '0', '2024-11-14 17:08:31', '$2y$10$AWxtnFUB0MIovc5cnDWzJ.Ld8689kXhesDP3RikpAtoSUJAD3INC.'),
-(12, 'John', 'Doe', 'Male', 'tharanikkumar63@gmail.com', 'doe1@example.com', '1234567890', '0987654321', 'Example College', '0', 5, 'CityName', 'StateName', 'Software Development', '1', '2', '3', 'Fundraising', 'Mentor', '1', '0', '2024-11-14 17:08:35', '$2y$10$KSscvpUg2FToj4r2Tc5zTe5giutXHTaL0pXi/A.eCf9XXIIs27HCO'),
-(13, 'John', 'Doe', 'Male', 'tharanikkumar3@gmail.com', 'doe1@example.com', '1234567890', '0987654321', 'Example College', '0', 5, 'CityName', 'StateName', 'Software Development', '1', '2', '3', 'Fundraising', 'Mentor', '1', '0', '2024-11-14 17:14:42', '$2y$10$1sQuniS96uzU9zNa34VUqux2yjF301XxQsIMejwa9N97p6WryizAO'),
-(14, 'John', 'Doe', 'Male', 'tharanikkumar30@gmail.com', 'doe1@example.com', '1234567890', '0987654321', 'Example College', '0', 5, 'CityName', 'StateName', 'Software Development', '1', '2', '3', 'Fundraising', 'Mentor', '1', '0', '2024-11-14 18:44:59', '$2y$10$py1/x7md81XToVWfoW.2ve/2MkCPyV.LVu89fNbyU0qdHGEMF/1ea');
+
 
 -- --------------------------------------------------------
 
@@ -106,14 +102,7 @@ CREATE TABLE `ideas` (
 -- Dumping data for table `ideas`
 --
 
-INSERT INTO `ideas` (`id`, `student_name`, `school`, `idea_title`, `status_id`, `theme_id`, `type`, `idea_description`) VALUES
-(13, 'John Doe', 'XYZ University', 'Smart Water Management System', 2, NULL, 'Technology', 'An innovative system for better water conservation.'),
-(15, 'John Doe', 'XYZ University', 'Smart Water Management System', 1, NULL, 'Technology', 'An innovative system for better water conservation.'),
-(16, 'John Doe', 'XYZ University', 'Smart Water Management System', 1, NULL, 'Technology', 'An innovative system for better water conservation.'),
-(17, 'John Doe', 'XYZ University', 'Smart Water Management System', 1, NULL, 'Technology', 'An innovative system for better water conservation.'),
-(18, 'John Doe', 'XYZ University', 'Smart Water Management System', 1, NULL, 'Technology', 'An innovative system for better water conservation.'),
-(19, 'John Doe', 'XYZ University', 'Smart Water Management System', 3, NULL, 'Technology', 'An innovative system for better water conservation.'),
-(20, 'John Doe', 'XYZ University', 'Smart Water Management System', 3, NULL, 'Technology', 'An innovative system for better water conservation.');
+
 
 -- --------------------------------------------------------
 
@@ -164,52 +153,43 @@ CREATE TABLE `theme` (
 -- Dumping data for table `theme`
 --
 
-INSERT INTO `theme` (`id`, `theme_name`) VALUES
-(1, 'Food Processing/Nutrition/Biotech'),
-(2, 'Healthcare & Biomedical devices'),
-(3, 'ICT, Cyber-physical systems, Blockchain, Cognitive computing, Cloud computing, AI & ML'),
-(4, 'Infrastructure'),
-(5, 'IoT based technologies (e.g. Security & Surveillance systems etc)'),
-(6, 'Consumer Goods and Retail'),
-(7, 'Defence & Security'),
-(8, 'Education'),
-(9, 'Fashion and Textiles'),
-(10, 'Finance Life Sciences'),
-(11, 'Agriculture & Rural Development'),
-(12, 'Clean & Potable water'),
-(13, 'Consumer Goods and Retail'),
-(14, 'Defence & Security'),
-(15, 'Education'),
-(16, 'Software-Web App Development'),
-(17, 'Sports & Fitness'),
-(18, 'Sustainable Environment'),
-(19, 'Travel & Tourism'),
-(20, 'Waste Management/Waste to Wealth Creation'),
-(21, 'Smart Cities'),
-(22, 'Smart Education'),
-(23, 'Smart Textiles'),
-(24, 'Smart Vehicles/Electric vehicle/Electric vehicle motor and battery technology'),
-(25, 'Software-Mobile App Development'),
-(26, 'Manufacturing'),
-(27, 'Mining, Metals, Materials'),
-(28, 'Other Emerging Areas Innovation for Start-ups'),
-(29, 'Renewable and Affordable Energy'),
-(30, 'Robotics and Drones'),
-(31, 'PoC Validation'),
-(32, 'Policy Expert (Start-up and Innovations)'),
-(33, 'Prototype Development'),
-(34, 'Technology Transfer'),
-(35, 'Venture Planning and Enterprise/Startup'),
-(36, 'IP Generation & Protection'),
-(37, 'PoC Validation'),
-(38, 'Policy Expert (Start-up and Innovations)'),
-(39, 'Prototype Development'),
-(40, 'Technology Transfer'),
-(41, 'Business Modeling/Plan Development'),
-(42, 'Design Thinking'),
-(43, 'Idea Generation & Validation'),
-(44, 'Incubation/Innovation Management'),
-(45, 'Investment and Market Analyst');
+INSERT INTO theme (id, theme_name)
+VALUES
+    (1, 'Food Processing/Nutrition/Biotech'),
+    (2, 'Healthcare & Biomedical devices'),
+    (3, 'ICT, Cyber-physical systems, Blockchain, Cognitive computing, Cloud computing, AI & ML'),
+    (4, 'Infrastructure'),
+    (5, 'IoT based technologies (e.g. Security & Surveillance systems etc)'),
+    (6, 'Consumer Goods and Retail'),
+    (7, 'Defence & Security'),
+    (8, 'Education'),
+    (9, 'Fashion and Textiles'),  -- Removed duplicate entry
+    (10, 'Finance Life Sciences'),
+    (11, 'Agriculture & Rural Development'),
+    (12, 'Clean & Potable water'),
+    (13, 'Software-Web App Development'),
+    (14, 'Sports & Fitness'),
+    (15, 'Sustainable Environment'),
+    (16, 'Travel & Tourism'),
+    (17, 'Waste Management/Waste to Wealth Creation'),
+    (18, 'Smart Cities'),
+    (19, 'Smart Education'),
+    (20, 'Smart Textiles'),
+    (21, 'Smart Vehicles/Electric vehicle/Electric vehicle motor and battery technology'),
+    (22, 'Software-Mobile App Development'),
+    (23, 'Manufacturing'),
+    (24, 'Mining, Metals, Materials'),
+    (25, 'Other Emerging Areas Innovation for Start-ups'),
+    (26, 'Renewable and Affordable Energy'),
+    (27, 'Robotics and Drones'),
+    (28, 'Venture Planning and Enterprise/Startup'),
+    (29, 'IP Generation & Protection'),
+    (30, 'Business Modeling/Plan Development'),
+    (31, 'Design Thinking'),
+    (32, 'Idea Generation & Validation'),
+    (33, 'Incubation/Innovation Management'),
+    (34, 'Investment and Market Analyst');
+
 
 --
 -- Indexes for dumped tables

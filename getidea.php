@@ -15,7 +15,7 @@ use Firebase\JWT\Key;
 
 $secretKey = 'sic';
 
-// Function to check JWT and ensure admin role
+
 function checkJwtCookie() {
     global $secretKey;
 
@@ -44,24 +44,31 @@ function checkJwtCookie() {
     }
 }
 
-// Validate the admin using the middleware
+
 checkJwtCookie();
 
-// Fetch all ideas
-$stmt = $conn->prepare("SELECT * FROM ideas");
-$stmt->execute();
-$result = $stmt->get_result();
 
-// Check if any ideas were returned
-$ideas = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
-
-// If no ideas found
-if (empty($ideas)) {
-    echo json_encode(["error" => "No ideas found."]);
+if (!isset($_GET['idea_id'])) {
+    echo json_encode(["error" => "Idea ID is required in the query parameters."]);
     exit();
 }
 
-// Return the ideas as JSON
-echo json_encode(["success" => true, "ideas" => $ideas]);
+$idea_id = $_GET['idea_id'];
+
+
+$stmt = $conn->prepare("SELECT * FROM ideas WHERE id = ?");
+$stmt->bind_param("i", $idea_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$idea = $result->fetch_assoc();
+$stmt->close();
+
+
+if (!$idea) {
+    echo json_encode(["error" => "Idea not found."]);
+    exit();
+}
+
+
+echo json_encode(["success" => true, "idea" => $idea]);
 ?>

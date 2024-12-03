@@ -42,8 +42,9 @@ if ($stmt->num_rows === 0) {
 $stmt->bind_result($id, $hashedPassword);
 $stmt->fetch();
 
-// Verify the password
+
 if (password_verify($password, $hashedPassword)) {
+
     $payload = [
         "iss" => "your_issuer",
         "aud" => "your_audience",

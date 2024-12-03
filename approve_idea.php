@@ -11,18 +11,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require 'vendor/autoload.php';
-require 'db.php';  // Include your database connection file
+require 'db.php';  
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
 $secretKey = "sic";
 
-// Enable error reporting for debugging
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Middleware function to validate the admin session using cookies
 function checkJwtCookie() {
     global $secretKey;
 

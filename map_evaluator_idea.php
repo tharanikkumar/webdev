@@ -1,7 +1,19 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Handle the preflight (OPTIONS) request
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    header("Access-Control-Allow-Origin: http://localhost:5173");  // Allow your frontend's origin
+    header("Access-Control-Allow-Credentials: true");              // Allow credentials (if needed)
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");    // Allowed methods
+    header("Access-Control-Allow-Headers: Content-Type, Authorization");  // Allowed headers
+    header("Access-Control-Max-Age: 86400"); // Cache preflight request for 24 hours
+    exit;  // End the script after handling the OPTIONS request
+}
+
+// The following headers will be applied to the actual request
+header("Access-Control-Allow-Origin: http://localhost:5173");  // Allow your frontend's origin
+header("Access-Control-Allow-Credentials: true");              // Allow credentials (if needed)
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");    // Allowed methods
+header("Access-Control-Allow-Headers: Content-Type, Authorization");  // Allowed headers
 
 require 'vendor/autoload.php'; // Include JWT library (e.g., Firebase JWT)
 require 'db.php'; // Include database connection
@@ -50,12 +62,13 @@ $input = json_decode(file_get_contents("php://input"), true);
 
 // Extract data from the request
 $idea_id = $input['idea_id'] ?? null;
-$evaluator_ids = $input['evaluator_id'] ?? [];
+$evaluator_ids = $input['evaluator_ids'] ?? null;  // Array of evaluator IDs
 $score = $input['score'] ?? null;
 $evaluator_comments = $input['evaluator_comments'] ?? null;
 
 // Check if required fields are present
 if (empty($idea_id) || empty($evaluator_ids)) {
+
     http_response_code(400);
     echo json_encode(["error" => "Idea ID and Evaluator IDs are required."]);
     exit;
@@ -65,6 +78,7 @@ if (empty($idea_id) || empty($evaluator_ids)) {
 if (!is_array($evaluator_ids)) {
     http_response_code(400);
     echo json_encode(["error" => "Evaluator IDs must be provided as an array."]);
+
     exit;
 }
 
@@ -86,6 +100,7 @@ if ($idea_count == 0) {
 $conn->autocommit(false);
 
 try {
+
     foreach ($evaluator_ids as $evaluator_id) {
         // Check if the evaluator_id exists in the evaluator table
         $stmt_check_evaluator = $conn->prepare("SELECT COUNT(*) FROM evaluator WHERE id = ?");
@@ -96,6 +111,27 @@ try {
         $stmt_check_evaluator->free_result();
 
         if ($evaluator_count == 0) {
+
+            echo json_encode(["error" => "Invalid evaluator_id: $evaluator_id. The evaluator does not exist."]);
+            exit;
+        }
+
+        // Insert data into idea_evaluators table for each evaluator
+        $stmt = $conn->prepare("INSERT INTO idea_evaluators (idea_id, evaluator_id, score, evaluator_comments) VALUES (?, ?, ?, ?)");
+        // If score or evaluator_comments is null, bind them as such
+        $stmt->bind_param("iiis", $idea_id, $evaluator_id, $score, $evaluator_comments);
+        $stmt->execute();
+    }
+    
+    // Now update the idea_status to 2 (assuming 2 means "evaluated")
+    $stmt_update_status = $conn->prepare("UPDATE ideas SET status_id = 2 WHERE id = ?");
+    $stmt_update_status->bind_param("i", $idea_id);
+    $stmt_update_status->execute();
+    
+    // Commit transaction
+    $conn->commit();
+    echo json_encode(["success" => "Evaluators successfully mapped to the idea and idea status updated."]);
+
             throw new Exception("Invalid evaluator_id: $evaluator_id. The evaluator does not exist.");
         }
 
@@ -105,15 +141,15 @@ try {
         $stmt->execute();
     }
 
-    // Commit transaction
-    $conn->commit();
-    echo json_encode(["success" => "Evaluators successfully mapped to the idea."]);
+ 
 
 } catch (Exception $e) {
     // Rollback if something goes wrong
     $conn->rollback();
+
     http_response_code(500);
     echo json_encode(["error" => "Failed to map evaluators: " . $e->getMessage()]);
+
 } finally {
     // End transaction mode
     $conn->autocommit(true);

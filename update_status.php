@@ -1,16 +1,16 @@
 <?php
 require 'vendor/autoload.php';
-require 'db.php';  // Include your database connection file
+require 'db.php';
+  // Include your database connection file
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 $secretKey = "your_secret_key";
 
-// Middleware to check if the request content type is JSON
+
 function ensureJsonContentType() {
     if ($_SERVER['CONTENT_TYPE'] !== 'application/json') {
         echo json_encode(["error" => "Content-Type must be application/json"]);

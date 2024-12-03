@@ -1,6 +1,5 @@
 <?php
 
-
 header("Access-Control-Allow-Origin: http://localhost:5173");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -67,84 +66,63 @@ function checkJwtCookie() {
     }
 }
 
-
-// Function to fetch common statistics
-function getCommonStatistics() {
-    global $conn; // Ensure you're referring to the global $conn object
-
-    // Query to get the common statistics with accurate counts for ideas and evaluators
-    $query = "
-        SELECT 
-            (SELECT COUNT(*) FROM ideas) AS ideas_registered,  -- Total ideas across all evaluators
-            (SELECT COUNT(*) FROM evaluator WHERE delete_status = 0) AS total_evaluators,  -- Total evaluators where delete_status is 0 (active)
-            (SELECT COUNT(*) FROM ideas WHERE status_id = 3) AS pending_ideas,  -- Ideas with pending verification
-            (SELECT COUNT(*) FROM evaluator WHERE evaluator_status = 3) AS pending_evaluators  -- Evaluators with status 0 (pending)";
-
-    $stmt = $conn->prepare($query);
-
-    if ($stmt === false) {
-        // Log and display detailed error information
-        die(json_encode([
-            "error" => "Failed to prepare SQL query.",
-            "sql_error" => $conn->error
-        ]));
-    }
-
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        return $result->fetch_assoc();
-    } else {
-        return null;
-    }
-}
-
-
-// Function to fetch evaluators
+// Function to fetch evaluators (only id and name)
 function getEvaluators() {
     global $conn;
 
-    $query = "SELECT id, first_name, last_name, email,evaluator_status, phone_number, city, state FROM evaluator WHERE delete_status = 0";
+    // Define the query to fetch only the id and name of evaluators
+    $query = "SELECT id, first_name FROM evaluator WHERE delete_status = 0  AND evaluator_status= 1"; 
+
+    // Prepare the statement
     $stmt = $conn->prepare($query);
 
     if ($stmt === false) {
-        // Log and display detailed error information
+        // Log and display detailed error information if query preparation fails
         die(json_encode([
             "error" => "Failed to prepare SQL query.",
             "sql_error" => $conn->error
         ]));
     }
 
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // Execute the statement
+    if (!$stmt->execute()) {
+        // Log and display error message if the execution fails
+        die(json_encode([
+            "error" => "Failed to execute SQL query.",
+            "sql_error" => $stmt->error
+        ]));
+    }
 
+    // Fetch all evaluators who meet the condition
+    $result = $stmt->get_result();
+    
     if ($result->num_rows > 0) {
+        // Fetch evaluators (only id and name) as an associative array
         $evaluators = [];
         while ($row = $result->fetch_assoc()) {
-            $evaluators[] = $row;
+            $evaluators[] = [
+                'id' => $row['id'], 
+                'name' => $row['first_name']
+            ];
         }
-        return $evaluators;
+        return json_encode($evaluators);
     } else {
-        return [];
+        // Return a message indicating no evaluators found
+        return json_encode([
+            "message" => "No evaluators found with fewer than 3 assigned ideas."
+        ]);
     }
 }
 
 // Check JWT cookie for valid admin user
 $decodedUser = checkJwtCookie();
 
-// Fetch common statistics (Total ideas, evaluators, pending verifications)
-$commonStatistics = getCommonStatistics();
-
 // Fetch all evaluators
 $evaluators = getEvaluators();
 
-// Return common statistics and evaluators as JSON response
+// Return evaluators as JSON response
 echo json_encode([
     "status" => "success",
-    "common_statistics" => $commonStatistics,
-    "evaluators" => $evaluators,
+    "evaluators" => json_decode($evaluators),  // Return the evaluator list
 ]);
 ?>
-
-
