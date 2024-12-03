@@ -4,6 +4,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require 'vendor/autoload.php'; // Include JWT library (e.g., Firebase JWT)
+require 'db.php'; // Include database connection
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -11,7 +12,7 @@ use Firebase\JWT\Key;
 // Define your secret key for JWT
 $secretKey = "sic";
 
-// Middleware function to validate the admin session using cookies
+// Middleware function to validate the admin or evaluator session using cookies
 function checkJwtCookie() {
     global $secretKey;
 
@@ -21,8 +22,8 @@ function checkJwtCookie() {
         try {
             $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
 
-            // Check if the user role is admin
-            if (!isset($decoded->role) || $decoded->role !== 'admin') {
+            // Allow only admin and evaluator roles
+            if (!isset($decoded->role) || !in_array($decoded->role, ['admin', 'evaluator'])) {
                 header("HTTP/1.1 403 Forbidden");
                 echo json_encode(["error" => "You are not authorized to perform this action."]);
                 exit();
@@ -41,10 +42,7 @@ function checkJwtCookie() {
     }
 }
 
-// Include database connection
-include 'db.php';
-
-// Check if the JWT cookie is valid
+// Validate the user using the middleware
 $user = checkJwtCookie();
 
 // Get JSON input and decode it
@@ -57,13 +55,15 @@ $score = $input['score'] ?? null;
 $evaluator_comments = $input['evaluator_comments'] ?? null;
 
 // Check if required fields are present
-if (empty($idea_id) || empty($evaluator_ids) ) {
-    echo json_encode(["error" => "Idea ID, Evaluator IDs, and score are required."]);
+if (empty($idea_id) || empty($evaluator_ids)) {
+    http_response_code(400);
+    echo json_encode(["error" => "Idea ID and Evaluator IDs are required."]);
     exit;
 }
 
 // Ensure evaluator_ids is an array
 if (!is_array($evaluator_ids)) {
+    http_response_code(400);
     echo json_encode(["error" => "Evaluator IDs must be provided as an array."]);
     exit;
 }
@@ -77,6 +77,7 @@ $stmt_check_idea->fetch();
 $stmt_check_idea->free_result();
 
 if ($idea_count == 0) {
+    http_response_code(404);
     echo json_encode(["error" => "Invalid idea_id: $idea_id. The idea does not exist."]);
     exit;
 }
@@ -111,6 +112,7 @@ try {
 } catch (Exception $e) {
     // Rollback if something goes wrong
     $conn->rollback();
+    http_response_code(500);
     echo json_encode(["error" => "Failed to map evaluators: " . $e->getMessage()]);
 } finally {
     // End transaction mode

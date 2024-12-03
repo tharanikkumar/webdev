@@ -44,31 +44,36 @@ $stmt->fetch();
 
 // Verify the password
 if (password_verify($password, $hashedPassword)) {
-    // JWT payload with role 'admin'
     $payload = [
         "iss" => "your_issuer",
         "aud" => "your_audience",
         "iat" => time(),
         "nbf" => time(),
         "email" => $email,
-        "role" => "admin"  // Add role claim to the token
+        "role" => "admin"
     ];
     
     $jwt = JWT::encode($payload, $secretKey, 'HS256');
     
-    // Set the token as a secure, HttpOnly cookie
     setcookie("auth_token", $jwt, [
-        'expires' => time() + (86400 * 7),  // 7 days expiration
-        'path' => '/',
-        'httponly' => true,
-        'secure' => isset($_SERVER['HTTPS']),  // Ensure HTTPS for secure cookie
-        'samesite' => 'Strict'  // Ensure the cookie is sent only to same-site requests
+        "expires" => time() + 3600,
+        "path" => "/",
+        "domain" => "localhost",
+        "secure" => false,
+        "httponly" => false,
+        "samesite" => "Lax"
     ]);
 
-    echo json_encode(["message" => "Signin successful", "role" => "admin"]);
-} else {
-    echo json_encode(["error" => "Invalid email or password."]);
+    echo json_encode([
+        "message" => "Signin successful",
+        "role" => "admin",
+        "token" => $jwt // Return token in the response
+    ]);
+    exit();
 }
+
+
+
 
 $stmt->close();
 $conn->close();

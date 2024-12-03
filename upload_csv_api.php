@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 include('db.php');  // Ensure this file contains your database connection logic.
-// Enable error reporting for debugging
+
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -10,7 +10,6 @@ header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With'); 
 
-// Check if file is uploaded
 if (isset($_FILES['file'])) {
     $file = $_FILES['file'];
 
@@ -43,7 +42,6 @@ if (isset($_FILES['file'])) {
         $response = [];
 
         while (($data = fgetcsv($csvFile)) !== FALSE) {
-            // Extract data from CSV columns
             $student_name = $data[0];
             $school = $data[1];
             $idea_title = $data[2];
@@ -51,42 +49,58 @@ if (isset($_FILES['file'])) {
             $theme_id = $data[4];
             $type = $data[5];
             $idea_description = $data[6];
-            $idea_id = $data[7];
+            $idea_id = $data[7];  // This might be empty if the idea doesn't have an ID yet.
             $evaluator_id = $data[8];
 
-            // Check if the evaluator_id and idea_id exist in the idea_evaluators table
-            $stmt = $conn->prepare("SELECT * FROM idea_evaluators WHERE idea_id = ? AND evaluator_id = ?");
-            $stmt->bind_param("ii", $idea_id, $evaluator_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
+            // If no idea_id is provided, create the idea first.
+            if (empty($idea_id)) {
+                // Insert the idea into the database first
+                $insertStmt = $conn->prepare("INSERT INTO ideas (student_name, school, idea_title, status_id, theme_id, type, idea_description, assigned_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $assigned_count = 0;  // Initially assigned_count is set to 0
+                $insertStmt->bind_param("sssiisss", $student_name, $school, $idea_title, $status_id, $theme_id, $type, $idea_description, $assigned_count);
+                $insertStmt->execute();
 
-            if ($result->num_rows > 0) {
-                // Update the idea status in the ideas table
-                $updateStmt = $conn->prepare("UPDATE ideas SET status_id = 1 WHERE id = ?");
-                $updateStmt->bind_param("i", $idea_id);
-                $updateStmt->execute();
+                // Get the newly inserted idea's ID
+                $idea_id = $insertStmt->insert_id;
 
-                // Fetch the updated idea information
-                $ideaQuery = $conn->prepare("SELECT student_name, idea_title, status_id FROM ideas WHERE id = ?");
-                $ideaQuery->bind_param("i", $idea_id);
-                $ideaQuery->execute();
-                $ideaResult = $ideaQuery->get_result();
-                $idea = $ideaResult->fetch_assoc();
-
-                // Prepare response
+                // Optionally, store the response if needed.
                 $response[] = [
-                    'student_name' => $idea['student_name'],
-                    'idea_title' => $idea['idea_title'],
-                    'view' => 'View link',  // Add actual link if needed
-                    'action' => 'Assigned',
-                    'status_id' => 1
+                    'student_name' => $student_name,
+                    'idea_title' => $idea_title,
+                    'status_id' => $status_id,
+                    'view' => 'View link',
+                    'action' => 'Created'
                 ];
             }
+
+            // Now, map the idea_id with the evaluator_id in the idea_evaluators table
+            $stmt = $conn->prepare("INSERT INTO idea_evaluators (idea_id, evaluator_id) VALUES (?, ?)");
+            $stmt->bind_param("ii", $idea_id, $evaluator_id);
+            $stmt->execute();
+
+            // After successfully mapping the evaluator, update the assigned_count and idea status
+            $updateStmt = $conn->prepare("UPDATE ideas SET assigned_count = 1, status_id = 1 WHERE id = ?");
+            $updateStmt->bind_param("i", $idea_id);
+            $updateStmt->execute();
+
+            // Retrieve and return the updated idea info
+            $ideaQuery = $conn->prepare("SELECT student_name, idea_title, status_id FROM ideas WHERE id = ?");
+            $ideaQuery->bind_param("i", $idea_id);
+            $ideaQuery->execute();
+            $ideaResult = $ideaQuery->get_result();
+            $idea = $ideaResult->fetch_assoc();
+
+            $response[] = [
+                'student_name' => $idea['student_name'],
+                'idea_title' => $idea['idea_title'],
+                'view' => 'View link',  // Can replace with actual URL if needed
+                'action' => 'Assigned',
+                'status_id' => 1
+            ];
         }
 
         fclose($csvFile);
 
-        // Return success response
         echo json_encode([
             'success' => true,
             'message' => 'File processed successfully!',

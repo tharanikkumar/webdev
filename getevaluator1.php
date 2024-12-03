@@ -126,6 +126,14 @@ function getEvaluators($ids = null) {
     $stmt->execute();
     $result = $stmt->get_result();
 
+    if ($result === false) {
+        // Log any errors related to query execution
+        die(json_encode([
+            "error" => "Failed to execute SQL query.",
+            "sql_error" => $conn->error
+        ]));
+    }
+
     if ($result->num_rows > 0) {
         $evaluators = [];
         while ($row = $result->fetch_assoc()) {
@@ -146,6 +154,12 @@ $commonStatistics = getCommonStatistics();
 // Get evaluator IDs from request (if any)
 $input = json_decode(file_get_contents("php://input"), true);
 $evaluatorIds = isset($input['evaluator_ids']) ? $input['evaluator_ids'] : null;
+
+if ($evaluatorIds === null || !is_array($evaluatorIds)) {
+    // Return an error if evaluator_ids is not provided or is not an array
+    echo json_encode(["error" => "Invalid evaluator_ids format."]);
+    exit();
+}
 
 // Fetch evaluators based on provided IDs (or all evaluators if no IDs)
 $evaluators = getEvaluators($evaluatorIds);
