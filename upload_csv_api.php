@@ -52,6 +52,14 @@ if (isset($_FILES['file'])) {
             $idea_id = $data[7];  // This might be empty if the idea doesn't have an ID yet.
             $evaluator_id = $data[8];
 
+            // Read the additional score fields and set default values if not provided
+            $novelity_score = isset($data[9]) ? (float)$data[9] : 0;  // Ensure float value
+            $usefulness_score = isset($data[10]) ? (float)$data[10] : 0;
+            $feasability_score = isset($data[11]) ? (float)$data[11] : 0;  // Corrected spelling
+            $scalability_score = isset($data[12]) ? (float)$data[12] : 0;
+            $sustainability_score = isset($data[13]) ? (float)$data[13] : 0;
+            $evaluator_comment = isset($data[14]) ? $data[14] : '';
+
             // If no idea_id is provided, create the idea first.
             if (empty($idea_id)) {
                 // Insert the idea into the database first
@@ -74,8 +82,8 @@ if (isset($_FILES['file'])) {
             }
 
             // Now, map the idea_id with the evaluator_id in the idea_evaluators table
-            $stmt = $conn->prepare("INSERT INTO idea_evaluators (idea_id, evaluator_id) VALUES (?, ?)");
-            $stmt->bind_param("ii", $idea_id, $evaluator_id);
+            $stmt = $conn->prepare("INSERT INTO idea_evaluators (idea_id, evaluator_id, novelity_score, usefulness_score, feasability_score, scalability_score, sustainability_score, evaluator_comment) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("iiddddds", $idea_id, $evaluator_id, $novelity_score, $usefulness_score, $feasability_score, $scalability_score, $sustainability_score, $evaluator_comment);
             $stmt->execute();
 
             // After successfully mapping the evaluator, update the assigned_count and idea status

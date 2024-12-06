@@ -5,11 +5,14 @@ header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
+
+
 // Handle preflight requests (OPTIONS method)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
+
 // Include necessary files
 require 'db.php';
 
@@ -21,22 +24,45 @@ if (!$evaluator_id) {
     exit();
 }
 
-// Query to fetch assigned ideas for the evaluator
+// Query to fetch assigned ideas along with their evaluation scores and evaluator comment
 $query = "
-    SELECT i.id, i.student_name, i.school, i.idea_title, i.status_id, i.theme_id, i.type, i.idea_description, i.assigned_count
-    FROM ideas i
-    JOIN idea_evaluators ie ON i.id = ie.idea_id
-    WHERE ie.evaluator_id = ?
+    SELECT 
+        ideas.id AS idea_id,
+        ideas.student_name,
+        ideas.school,
+        ideas.idea_title,
+        ideas.status_id,
+        ideas.theme_id,
+        ideas.type,
+        ideas.idea_description,
+        ideas.assigned_count,
+        idea_evaluators.novelity_score,
+        idea_evaluators.usefulness_score,
+        idea_evaluators.feasability_score,
+        idea_evaluators.scalability_score,
+        idea_evaluators.sustainability_score,
+        idea_evaluators.evaluator_comment
+    FROM ideas
+    LEFT JOIN idea_evaluators ON ideas.id = idea_evaluators.idea_id
+    WHERE idea_evaluators.evaluator_id = ?
 ";
 
+// Prepare and execute the query
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $evaluator_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-$ideas = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+// Fetch all ideas as an array
+$ideas = [];
+while ($row = $result->fetch_assoc()) {
+    $ideas[] = $row;
+}
 
-// Return the ideas as JSON
+// Return ideas as JSON
 echo json_encode($ideas);
+
+// Close the connection
+$stmt->close();
+$conn->close();
 ?>

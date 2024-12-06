@@ -51,8 +51,12 @@ $input = json_decode(file_get_contents("php://input"), true);
 // Extract data from the request
 $idea_id = $input['idea_id'] ?? null;
 $evaluator_ids = $input['evaluator_id'] ?? [];
-$score = $input['score'] ?? null;
-$evaluator_comments = $input['evaluator_comments'] ?? null;
+$novelity_score = $input['novelity_score'] ?? null;
+$usefulness_score = $input['usefulness_score'] ?? null;
+$feasability_score = $input['feasability_score'] ?? null;
+$scalability_score = $input['scalability_score'] ?? null;
+$sustainability_score = $input['sustainability_score'] ?? null;
+$evaluator_comment = $input['evaluator_comment'] ?? null;
 
 // Check if required fields are present
 if (empty($idea_id) || empty($evaluator_ids)) {
@@ -100,8 +104,17 @@ try {
         }
 
         // Insert data into idea_evaluators table
-        $stmt = $conn->prepare("INSERT INTO idea_evaluators (idea_id, evaluator_id, score, evaluator_comments) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("iiis", $idea_id, $evaluator_id, $score, $evaluator_comments);
+        $stmt = $conn->prepare(
+            "INSERT INTO idea_evaluators (
+                idea_id, evaluator_id, novelity_score, usefulness_score, 
+                feasability_score, scalability_score, sustainability_score, evaluator_comment
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->bind_param(
+            "iiddddds", 
+            $idea_id, $evaluator_id, $novelity_score, $usefulness_score, 
+            $feasability_score, $scalability_score, $sustainability_score, $evaluator_comment
+        );
         $stmt->execute();
     }
 
