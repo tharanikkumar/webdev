@@ -17,78 +17,82 @@ use Firebase\JWT\Key;
 
 $secretKey = "sic";
 
-// Enable error reporting for debugging
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Function to sanitize input
 function sanitizeInput($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
-// Middleware function to validate the admin session using cookies
 function checkJwtCookie() {
     global $secretKey;
 
-    // Check if the auth token is stored in the cookie
     if (isset($_COOKIE['auth_token'])) {
         $jwt = $_COOKIE['auth_token'];
 
         try {
-            // Decode the JWT token to verify and check the role
             $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
 
-            // Check if the role is 'admin'
-            if (!isset($decoded->role) || $decoded->role !== 'admin') {
-                // Return a 403 Forbidden status and a custom message
+            if (!isset($decoded->role) || $decoded->role !== 'evaluator') {
                 header("HTTP/1.1 403 Forbidden");
-                echo json_encode(["error" => "You are not an admin."]);
+                echo json_encode(["error" => "You are not an evaluator."]);
                 exit();
             }
 
-            // Return the decoded JWT data if role is 'admin'
             return $decoded;
 
         } catch (Exception $e) {
-            // If the JWT verification fails, return a 401 Unauthorized status with the error message
             header("HTTP/1.1 401 Unauthorized");
             echo json_encode(["error" => "Unauthorized - " . $e->getMessage()]);
             exit();
         }
     } else {
-        // If the auth token is missing, return a 401 Unauthorized status with a message
         header("HTTP/1.1 401 Unauthorized");
         echo json_encode(["error" => "Unauthorized - No token provided."]);
         exit();
     }
 }
 
-// Function to fetch a single evaluator by ID
-function getEvaluatorById($id) {
+function getIdeasByEvaluatorId($evaluatorId) {
     global $conn;
 
-    // Prepare SQL query to fetch evaluator by ID
-    $query = "SELECT * FROM evaluator WHERE id = ? AND delete_status = 0";
+    // Query to join ideas and idea_evaluators to fetch the ideas assigned to the evaluator
+    $query = "
+    SELECT i.*
+    FROM ideas i
+    INNER JOIN idea_evaluators ie ON i.id = ie.idea_id
+    WHERE ie.evaluator_id = ?
+";
+
     $stmt = $conn->prepare($query);
 
-    // Bind the ID as a parameter
-    $stmt->bind_param('i', $id);
-
+    // Check if the query was prepared successfully
     if ($stmt === false) {
-        // Log and display detailed error information
-        die(json_encode([ "error" => "Failed to prepare SQL query.", "sql_error" => $conn->error ]));
+        die(json_encode([ 
+            "error" => "Failed to prepare SQL query.", 
+            "sql_error" => $conn->error 
+        ]));
     }
 
+    // Bind the evaluator ID as a parameter
+    $stmt->bind_param('i', $evaluatorId);
+
+    // Execute the query
     $stmt->execute();
+
+    // Get the result set
     $result = $stmt->get_result();
 
-    if ($result->num_rows > 0) {
-        return $result->fetch_assoc();  // Return a single evaluator
-    } else {
-        return null;  // No evaluator found
+    // Fetch all ideas assigned to the evaluator
+    $ideas = [];
+    while ($row = $result->fetch_assoc()) {
+        $ideas[] = $row;
     }
+
+    return $ideas;
 }
+
 
 // Check JWT cookie for valid admin user
 $decodedUser = checkJwtCookie();
@@ -99,32 +103,28 @@ $evaluatorId = isset($_GET['evaluator_id']) ? (int) $_GET['evaluator_id'] : null
 // Debugging step: log the evaluator_id
 error_log("Received evaluator_id: " . $evaluatorId);
 
-// Check if evaluator_id is provided
+
 if ($evaluatorId) {
     // Fetch the evaluator by ID
-    $evaluator = getEvaluatorById($evaluatorId);
+    $ideas = getIdeasByEvaluatorId($evaluatorId);
 
-    // Debugging step: log the evaluator data
-    error_log("Fetched evaluator: " . json_encode($evaluator));
+    error_log("Fetched evaluator: " . json_encode($ideas));
 
-    if ($evaluator) {
-        // Return evaluator details as JSON response
+    if ($ideas) {
         echo json_encode([
             "status" => "success",
-            "evaluator" => $evaluator,
+            "ideas" => $ideas,
         ]);
     } else {
-        // If evaluator not found
         echo json_encode([
             "status" => "error",
-            "message" => "Evaluator not found."
+            "message" => "Ideas not found."
         ]);
     }
 } else {
-    // If evaluator_id is not provided
     echo json_encode([
         "status" => "error",
-        "message" => "No evaluator ID provided."
+        "message" => "No evaluator  ID provided."
     ]);
 }
 
