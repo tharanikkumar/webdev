@@ -25,11 +25,11 @@ if (isset($data['student_name'], $data['school'], $data['idea_title'], $data['th
     $theme_id = $data['theme_id'];
     $type = $data['type'];
     $idea_description = $data['idea_description'];
-    $evaluator_id_1 = $data['evaluator_id_1'];  // Individual evaluator IDs
+    $evaluator_id_1 = $data['evaluator_id_1'];
     $evaluator_id_2 = $data['evaluator_id_2'];
     $evaluator_id_3 = $data['evaluator_id_3'];
 
-    // Set the initial status_id to 3 when creating the idea
+
     $status_id = 3;
 
     // Insert the idea into the database with the initial status_id as 3

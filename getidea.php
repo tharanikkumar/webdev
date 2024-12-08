@@ -25,11 +25,6 @@ function checkJwtCookie() {
         try {
             $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
 
-            if (!isset($decoded->role) || $decoded->role !== 'admin') {
-                header("HTTP/1.1 403 Forbidden");
-                echo json_encode(["error" => "You are not an admin."]);
-                exit();
-            }
             return $decoded;
 
         } catch (Exception $e) {
