@@ -79,3 +79,4 @@ if (password_verify($password, $hashedPassword)) {
 $stmt->close();
 $conn->close();
 ?>
+
