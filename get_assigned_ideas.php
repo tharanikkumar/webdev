@@ -57,9 +57,8 @@ function checkJwtCookie() {
 function getIdeasByEvaluatorId($evaluatorId) {
     global $conn;
 
-    // Query to join ideas and idea_evaluators to fetch the ideas assigned to the evaluator
     $query = "
-    SELECT i.*
+    SELECT i.*,ie.status
     FROM ideas i
     INNER JOIN idea_evaluators ie ON i.id = ie.idea_id
     WHERE ie.evaluator_id = ?
