@@ -65,6 +65,7 @@ $scalability_score = $input['scalability_score'] ?? null;
 $sustainability_score = $input['sustainability_score'] ?? null;
 $comment = $input['comment'] ?? null;
 $score = $input['score'] ?? null;
+$status=$input['status']??null;
 
 // Check if required fields are present
 if (empty($idea_id) || empty($evaluator_id)) {
@@ -113,6 +114,7 @@ try {
             feasability = ?, 
             scalability = ?, 
             sustainability = ?
+            status=?
         WHERE idea_id = ? AND evaluator_id = ?
     ");
     
@@ -126,7 +128,8 @@ try {
         $scalability_score, 
         $sustainability_score, 
         $idea_id, 
-        $evaluator_id
+        $evaluator_id,
+        $status
     );
 
     $stmt->execute();
